@@ -1,0 +1,49 @@
+import pyperclip
+import time
+import threading
+import tkinter as tk
+from tkinter import messagebox
+
+class ClipboardManager:
+    def __init__(self):
+        self.clipboard_history = []
+
+    def monitor_clipboard(self):
+        previous_text = ""
+        while True:
+            current_text = pyperclip.paste()
+            if current_text != previous_text and current_text not in self.clipboard_history:
+                self.clipboard_history.append(current_text)
+                previous_text = current_text
+            time.sleep(1)
+
+    def get_history(self):
+        return self.clipboard_history
+
+class ClipboardApp:
+    def __init__(self, root, clipboard_manager):
+        self.root = root
+        self.root.title("Clipboard Manager")
+        self.clipboard_manager = clipboard_manager
+
+        self.listbox = tk.Listbox(root, width=100, height=20)
+        self.listbox.pack(pady=20)
+
+        self.refresh_button = tk.Button(root, text="Refresh", command=self.refresh_list)
+        self.refresh_button.pack(pady=10)
+
+        self.select_button = tk.Button(root, text="Select", command=self.select_text)
+        self.select_button.pack(pady=10)
+
+    def refresh_list(self):
+        self.listbox.delete(0, tk.END)
+        for item in self.clipboard_manager.get_history():
+            self.listbox.insert(tk.END, item)
+
+    def select_text(self):
+        selected_text = self.listbox.get(tk.ACTIVE)
+        if selected_text:
+            pyperclip.copy(selected_text)
+            messagebox.showinfo("Clipboard Manager", "Text copied to clipboard!")
+        else:
+            messagebox.showwarning("Clipboard Manager", "No text selected!")
