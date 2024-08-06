@@ -2,29 +2,20 @@ import threading
 import tkinter as tk
 import sys
 import traceback
-import time
 import os
+import logging
 
 from utils.clipboard_classes import ClipboardManager, ClipboardApp
 
-def log_error():
-    with open("error_log.txt", "w") as f:
-        f.write("An error occurred:\n")
-        traceback.print_exc(file=f)
 
-# Initialize logging at the start
-try:
-    clipboard_manager = ClipboardManager()
+clipboard_manager = ClipboardManager()
 
-    # Run the clipboard monitoring in a separate thread
-    monitor_thread = threading.Thread(target=clipboard_manager.monitor_clipboard)
-    monitor_thread.daemon = True
-    monitor_thread.start()
+# Run the clipboard monitoring in a separate thread
+monitor_thread = threading.Thread(target=clipboard_manager.monitor_clipboard)
+monitor_thread.daemon = True
+monitor_thread.start()
 
-    root = tk.Tk()
-    app = ClipboardApp(root, clipboard_manager)
-    root.mainloop()
-except Exception as e:
-    log_error(e)
-    with open("log.txt", "a") as f:
-        f.write("An exception occurred. See error_log.txt for details.\n")
+root = tk.Tk()
+app = ClipboardApp(root, clipboard_manager)
+root.mainloop()
+

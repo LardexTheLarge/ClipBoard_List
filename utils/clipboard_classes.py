@@ -40,26 +40,58 @@ class ClipboardApp:
         self.root.title("Clipboard Manager")
         self.clipboard_manager = clipboard_manager
 
-        self.listbox = tk.Listbox(root, width=100, height=20)
-        self.listbox.pack(pady=20)
+        self.selected_label = None  # To keep track of the selected label
 
-        self.refresh_button = tk.Button(root, text="Refresh", command=self.refresh_list)
+        self.grid_frame = tk.Frame(root)
+        self.grid_frame.pack(pady=20)
+
+        self.refresh_button = tk.Button(root, text="Refresh", command=self.refresh_grid)
         self.refresh_button.pack(pady=10)
 
-        self.select_button = tk.Button(root, text="Select", command=self.select_text)
-        self.select_button.pack(pady=10)
+        self.delete_button = tk.Button(root, text="Delete", command=self.delete_selected)
+        self.delete_button.pack(pady=10)
 
-        self.refresh_list()
+        self.refresh_grid()  # Refresh the grid when the application starts
 
-    def refresh_list(self):
-        self.listbox.delete(0, tk.END)
-        for item in self.clipboard_manager.get_history():
-            self.listbox.insert(tk.END, item)
+    def refresh_grid(self):
+        for widget in self.grid_frame.winfo_children():
+            widget.destroy()
+        
+        clipboard_history = self.clipboard_manager.get_history()
+        num_columns = 3  # Set the number of columns in the grid
+        for index, item in enumerate(clipboard_history):
+            row = index // num_columns
+            column = index % num_columns
+            label = tk.Label(self.grid_frame, text=item, borderwidth=1, relief="solid", width=30, height=2, wraplength=250)
+            label.grid(row=row, column=column, padx=5, pady=5)
+            label.bind("<Double-Button-1>", lambda event, text=item: self.copy_text(text))
+            label.bind("<Button-1>", lambda event, lbl=label: self.select_label(lbl))
 
-    def select_text(self):
-        selected_text = self.listbox.get(tk.ACTIVE)
-        if selected_text:
-            pyperclip.copy(selected_text)
+        # Configure grid to expand with window size
+        for column in range(num_columns):
+            self.grid_frame.columnconfigure(column, weight=1)
+        for row in range((len(clipboard_history) + num_columns - 1) // num_columns):
+            self.grid_frame.rowconfigure(row, weight=1)
+
+    def select_label(self, label):
+        if self.selected_label:
+            self.selected_label.config(bg="SystemButtonFace")
+        self.selected_label = label
+        label.config(bg="lightblue")
+
+    def delete_selected(self):
+        if self.selected_label:
+            item_to_delete = self.selected_label.cget("text")
+            self.clipboard_manager.clipboard_history.remove(item_to_delete)
+            self.clipboard_manager.save_history()
+            self.refresh_grid()
+            self.selected_label = None
+        else:
+            messagebox.showwarning("Clipboard Manager", "No item selected!")
+
+    def copy_text(self, text):
+        if text:
+            pyperclip.copy(text)
             messagebox.showinfo("Clipboard Manager", "Text copied to clipboard!")
         else:
-            messagebox.showwarning("Clipboard Manager", "No text selected!") 
+            messagebox.showwarning("Clipboard Manager", "No text selected!")
