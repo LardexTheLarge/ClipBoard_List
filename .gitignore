@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 test.ipynb
 Draft Code.txt
+clipboard_history.json
 # C extensions
 *.so
 
