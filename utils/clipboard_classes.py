@@ -29,12 +29,20 @@ class ClipboardManager:
         while True:
             current_text = pyperclip.paste()  # Get current text from clipboard
             if current_text != previous_text and current_text not in self.clipboard_history:
-                self.clipboard_history.append(current_text)  # Add new text to history
+                self.add_to_history(current_text)  # Add new text to history
                 self.save_history()  # Save updated history to file
                 previous_text = current_text
                 if self.clipboard_app:
                     self.clipboard_app.refresh_grid()  # Refresh the grid in the app
             time.sleep(1)  # Check clipboard every second
+
+    def add_to_history(self, text):
+        """
+        Adds new text to clipboard history and removes oldest item if history exceeds 15 items.
+        """
+        if len(self.clipboard_history) >= 15:
+            self.clipboard_history.pop(0)  # Remove the oldest item
+        self.clipboard_history.append(text)
 
     def get_history(self):
         """
@@ -77,17 +85,34 @@ class ClipboardApp:
         self.grid_frame = tk.Frame(root)
         self.grid_frame.pack(pady=20)
 
+        # Create a frame to hold the buttons horizontally
+        self.button_frame = tk.Frame(root)
+        self.button_frame.pack(pady=10)
+
         # Create and pack buttons for refresh, edit, and delete actions
-        self.refresh_button = tk.Button(root, text="Refresh", command=self.refresh_grid)
-        self.refresh_button.pack(pady=10)
+        self.refresh_button = tk.Button(self.button_frame, text="Refresh", command=self.refresh_grid)
+        self.refresh_button.pack(side=tk.LEFT, padx=5)
 
-        self.edit_button = tk.Button(root, text="Edit", command=self.edit_selected)
-        self.edit_button.pack(pady=10)
+        self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.edit_selected)
+        self.edit_button.pack(side=tk.LEFT, padx=5)
 
-        self.delete_button = tk.Button(root, text="Delete", command=self.delete_selected)
-        self.delete_button.pack(pady=10)
+        self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_selected)
+        self.delete_button.pack(side=tk.LEFT, padx=5)
 
         self.refresh_grid()  # Initial refresh to display the current clipboard history
+
+    def truncate_text(self, text, max_length=20):
+        """
+        Truncates the text to a specified maximum length, adding ellipsis if truncated.
+        """
+        return (text[:max_length] + '...') if len(text) > max_length else text
+
+    def calculate_label_height(self, text, max_length=20):
+        """
+        Calculates the height of the label based on the length of the truncated text.
+        """
+        lines = (len(text) // max_length) + 1
+        return lines * 2  # Adjust multiplier as needed to fit text properly
 
     def refresh_grid(self):
         """
@@ -98,12 +123,18 @@ class ClipboardApp:
         
         clipboard_history = self.clipboard_manager.get_history()
         num_columns = 3  # Number of columns in the grid
+        fixed_width = 30  # Fixed width for labels
+        max_length = 20  # Maximum length for truncation
+
         for index, item in enumerate(clipboard_history):
             row = index // num_columns
             column = index % num_columns
+            truncated_text = self.truncate_text(item, max_length)  # Truncate text for label
+            label_height = self.calculate_label_height(truncated_text, max_length)  # Calculate label height
             # Create a label for each item in the history
-            label = tk.Label(self.grid_frame, text=item, borderwidth=1, relief="solid", width=30, height=2, wraplength=250)
+            label = tk.Label(self.grid_frame, text=truncated_text, borderwidth=1, relief="solid", width=fixed_width, height=label_height, wraplength=250, anchor=tk.W, justify=tk.LEFT)
             label.grid(row=row, column=column, padx=5, pady=5)
+            label.full_text = item  # Store the full text in the label
             # Bind double-click to copy text and single-click to select label
             label.bind("<Double-Button-1>", lambda event, text=item: self.copy_text(text))
             label.bind("<Button-1>", lambda event, lbl=label: self.select_label(lbl))
@@ -129,7 +160,7 @@ class ClipboardApp:
         Deletes the currently selected label's text from history and refreshes the grid.
         """
         if self.selected_label:
-            item_to_delete = self.selected_label.cget("text")
+            item_to_delete = self.selected_label.full_text  # Get the full text from the label
             self.clipboard_manager.clipboard_history.remove(item_to_delete)  # Remove item from history
             self.clipboard_manager.save_history()  # Save updated history to file
             self.refresh_grid()  # Refresh the grid to reflect changes
@@ -142,7 +173,7 @@ class ClipboardApp:
         Opens a new window for editing the text of the currently selected label.
         """
         if self.selected_label:
-            old_text = self.selected_label.cget("text")
+            old_text = self.selected_label.full_text  # Get the full text from the label
             edit_window = Toplevel(self.root)  # Create a new top-level window
             edit_window.title("Edit Text")
 
