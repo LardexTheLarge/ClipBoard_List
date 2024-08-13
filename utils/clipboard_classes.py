@@ -16,9 +16,12 @@ class ClipboardManager:
         Initializes the ClipboardManager with optional reference to ClipboardApp.
         """
         self.clipboard_history = []
+        self.pinned_items = []  # List to store pinned items
         self.history_file = "clipboard_history.json"
+        self.pinned_file = "pinned_items.json"  # File to store pinned items
         self.clipboard_app = clipboard_app  # Reference to the ClipboardApp instance
         self.load_history()  # Load existing history from file
+        self.load_pinned_items()  # Load pinned items from file
 
     def monitor_clipboard(self):
         """
@@ -38,17 +41,34 @@ class ClipboardManager:
 
     def add_to_history(self, text):
         """
-        Adds new text to clipboard history and removes oldest item if history exceeds 15 items.
+        Adds new text to clipboard history and removes oldest item if history exceeds 30 items.
         """
-        if len(self.clipboard_history) >= 15:
+        if len(self.clipboard_history) >= 30:
             self.clipboard_history.pop(0)  # Remove the oldest item
         self.clipboard_history.append(text)
+
+    def pin_item(self, item):
+        """
+        Pins an item and saves the pinned items to a JSON file.
+        """
+        if item not in self.pinned_items:
+            self.pinned_items.append(item)
+            if item in self.clipboard_history:
+                self.clipboard_history.remove(item)
+            self.save_pinned_items()  # Save updated pinned items to file
+            self.save_history()  # Save updated history to file
 
     def get_history(self):
         """
         Returns the current clipboard history.
         """
         return self.clipboard_history
+
+    def get_pinned_items(self):
+        """
+        Returns the current pinned items.
+        """
+        return self.pinned_items
 
     def save_history(self):
         """
@@ -57,6 +77,13 @@ class ClipboardManager:
         with open(self.history_file, 'w') as f:
             json.dump(self.clipboard_history, f)
 
+    def save_pinned_items(self):
+        """
+        Saves the pinned items to a JSON file.
+        """
+        with open(self.pinned_file, 'w') as f:
+            json.dump(self.pinned_items, f)
+
     def load_history(self):
         """
         Loads clipboard history from a JSON file if it exists.
@@ -64,6 +91,14 @@ class ClipboardManager:
         if os.path.exists(self.history_file):
             with open(self.history_file, 'r') as f:
                 self.clipboard_history = json.load(f)
+
+    def load_pinned_items(self):
+        """
+        Loads pinned items from a JSON file if it exists.
+        """
+        if os.path.exists(self.pinned_file):
+            with open(self.pinned_file, 'r') as f:
+                self.pinned_items = json.load(f)
 
 class ClipboardApp:
     """
@@ -80,6 +115,13 @@ class ClipboardApp:
         self.clipboard_manager.clipboard_app = self  # Pass reference to ClipboardManager
 
         self.selected_label = None  # To keep track of the currently selected label
+
+        # Create and pack the frame that will hold the pinned items
+        self.pinned_frame = tk.Frame(root, bg="lightgrey")
+        self.pinned_frame.pack(pady=10, fill=tk.X)
+
+        pinned_label = tk.Label(self.pinned_frame, text="Pinned Items", bg="lightgrey", anchor=tk.W)
+        pinned_label.pack(side=tk.LEFT, padx=5)
 
         # Create and pack the frame that will hold the grid of clipboard items
         self.grid_frame = tk.Frame(root)
@@ -120,24 +162,43 @@ class ClipboardApp:
         """
         for widget in self.grid_frame.winfo_children():
             widget.destroy()  # Clear existing widgets
+
+        for widget in self.pinned_frame.winfo_children():
+            if isinstance(widget, tk.Label) or isinstance(widget, tk.Button):
+                widget.destroy()  # Clear existing widgets except the "Pinned Items" label
         
         clipboard_history = self.clipboard_manager.get_history()
+        pinned_items = self.clipboard_manager.get_pinned_items()
         num_columns = 3  # Number of columns in the grid
         fixed_width = 30  # Fixed width for labels
         max_length = 20  # Maximum length for truncation
 
+        # Display pinned items
+        for index, item in enumerate(pinned_items):
+            truncated_text = self.truncate_text(item, max_length)  # Truncate text for label
+            label_height = self.calculate_label_height(truncated_text, max_length)  # Calculate label height
+            label = tk.Label(self.pinned_frame, text=truncated_text, borderwidth=1, relief="solid", width=fixed_width, height=label_height, wraplength=250, anchor=tk.W, justify=tk.LEFT, bg="lightyellow")
+            label.pack(side=tk.TOP, anchor="w", padx=5, pady=5)
+            label.full_text = item  # Store the full text in the label
+            label.bind("<Double-Button-1>", lambda event, text=item: self.copy_text(text))
+
+        # Display clipboard history items
         for index, item in enumerate(clipboard_history):
             row = index // num_columns
             column = index % num_columns
             truncated_text = self.truncate_text(item, max_length)  # Truncate text for label
             label_height = self.calculate_label_height(truncated_text, max_length)  # Calculate label height
-            # Create a label for each item in the history
-            label = tk.Label(self.grid_frame, text=truncated_text, borderwidth=1, relief="solid", width=fixed_width, height=label_height, wraplength=250, anchor=tk.W, justify=tk.LEFT)
-            label.grid(row=row, column=column, padx=5, pady=5)
+            frame = tk.Frame(self.grid_frame)
+            frame.grid(row=row, column=column, padx=5, pady=5)
+            label = tk.Label(frame, text=truncated_text, borderwidth=1, relief="solid", width=fixed_width, height=label_height, wraplength=250, anchor=tk.W, justify=tk.LEFT)
+            label.pack(side=tk.LEFT)
             label.full_text = item  # Store the full text in the label
             # Bind double-click to copy text and single-click to select label
             label.bind("<Double-Button-1>", lambda event, text=item: self.copy_text(text))
             label.bind("<Button-1>", lambda event, lbl=label: self.select_label(lbl))
+            # Add a pin button next to each label
+            pin_button = tk.Button(frame, text="Pin", command=lambda item=item: self.pin_item(item))
+            pin_button.pack(side=tk.RIGHT, padx=5)
 
         # Configure the grid to expand with window size
         for column in range(num_columns):
@@ -202,6 +263,13 @@ class ClipboardApp:
             window.destroy()  # Close the edit window
         else:
             messagebox.showwarning("Clipboard Manager", "Text cannot be empty!")
+
+    def pin_item(self, item):
+        """
+        Pins an item and refreshes the grid.
+        """
+        self.clipboard_manager.pin_item(item)
+        self.refresh_grid()
 
     def copy_text(self, text):
         """

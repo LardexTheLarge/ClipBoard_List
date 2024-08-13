@@ -5,6 +5,7 @@ __pycache__/
 test.ipynb
 Draft Code.txt
 clipboard_history.json
+pinned_items.json
 # C extensions
 *.so
 
