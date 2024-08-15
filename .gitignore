@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 test.ipynb
-Draft Code.txt
+Draft Code.py
 clipboard_history.json
 pinned_items.json
 # C extensions
