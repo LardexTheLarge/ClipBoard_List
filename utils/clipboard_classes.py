@@ -38,9 +38,9 @@ class ClipboardManager:
 
     def add_to_history(self, text):
         """
-        Adds new text to clipboard history and removes oldest item if history exceeds 15 items.
+        Adds new text to clipboard history and removes oldest item if history exceeds 30 items.
         """
-        if len(self.clipboard_history) >= 15:
+        if len(self.clipboard_history) >= 30:
             self.clipboard_history.pop(0)  # Remove the oldest item
         self.clipboard_history.append(text)
 
