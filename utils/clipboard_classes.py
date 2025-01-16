@@ -2,7 +2,7 @@ import pyperclip
 import time
 import threading
 import tkinter as tk
-from tkinter import messagebox, Toplevel, Text
+from tkinter import messagebox, Toplevel, Text, ttk
 import json
 import os
 
@@ -79,7 +79,9 @@ class ClipboardApp:
         self.clipboard_manager = clipboard_manager
         self.clipboard_manager.clipboard_app = self  # Pass reference to ClipboardManager
 
+
         self.selected_label = None  # To keep track of the currently selected label
+        self.current_theme = "dark"  # Default theme
 
         # Create and pack the frame that will hold the grid of clipboard items
         self.grid_frame = tk.Frame(root)
@@ -98,8 +100,50 @@ class ClipboardApp:
 
         self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_selected)
         self.delete_button.pack(side=tk.LEFT, padx=5)
+    
+        self.theme_toggle_button = tk.Button(self.button_frame, text="Switch to Dark Theme", command=self.toggle_theme)
+        self.theme_toggle_button.pack(side=tk.LEFT, padx=5)
+
+        # Apply the default system theme
+        self.apply_system_theme(self.current_theme)
 
         self.refresh_grid()  # Initial refresh to display the current clipboard history
+
+    def apply_system_theme(self, theme):
+        """
+        Configures the application to use the specified theme (light/dark).
+        """
+        try:
+            # Use ttk style for modern theming
+            style = ttk.Style()
+
+            # Apply the specified theme
+            if theme == "dark":
+                self.root.config(bg="darkblue")
+                self.grid_frame.config(bg="darkblue")
+                self.button_frame.config(bg="darkblue")
+                self.refresh_button.config(bg="darkgray", fg="black")
+                self.edit_button.config(bg="darkgray", fg="black")
+                self.delete_button.config(bg="darkgray", fg="black")
+                self.theme_toggle_button.config(bg="darkgray", fg="black", text="Switch to Light Theme")
+            else:  # Light theme
+                self.root.config(bg="white")
+                self.grid_frame.config(bg="white")
+                self.button_frame.config(bg="white")
+                self.refresh_button.config(bg="lightgray", fg="black")
+                self.edit_button.config(bg="lightgray", fg="black")
+                self.delete_button.config(bg="lightgray", fg="black")
+                self.theme_toggle_button.config(bg="lightgray", fg="black", text="Switch to Dark Theme")
+
+        except Exception as e:
+            print(f"Error applying theme: {e}")
+
+    def toggle_theme(self):
+        """
+        Toggles between light and dark themes.
+        """
+        self.current_theme = "dark" if self.current_theme == "light" else "light"
+        self.apply_system_theme(self.current_theme)
 
     def truncate_text(self, text, max_length=20):
         """
@@ -205,10 +249,20 @@ class ClipboardApp:
 
     def copy_text(self, text):
         """
-        Copies the specified text to the clipboard and shows a message.
+        Copies the specified text to the clipboard and shows a message with a timer.
         """
         if text:
             pyperclip.copy(text)
-            messagebox.showinfo("Clipboard Manager", "Text copied to clipboard!")
+
+            # Create a temporary Toplevel window for the notification
+            notification = Toplevel(self.root)
+            notification.title("Clipboard Manager")
+            notification.geometry("200x100")  # Adjust dimensions as needed
+            notification.resizable(False, False)
+            notification_label = tk.Label(notification, text="Text copied to clipboard!", padx=10, pady=10)
+            notification_label.pack(expand=True)
+
+            # Schedule the window to close after 2 seconds
+            self.root.after(2000, notification.destroy)
         else:
             messagebox.showwarning("Clipboard Manager", "No text selected!")
