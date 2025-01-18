@@ -104,10 +104,9 @@ class ClipboardApp:
         self.theme_toggle_button = tk.Button(self.button_frame, text="Switch to Dark Theme", command=self.toggle_theme)
         self.theme_toggle_button.pack(side=tk.LEFT, padx=5)
 
-        # Apply the default system theme
-        self.apply_system_theme(self.current_theme)
-
         self.refresh_grid()  # Initial refresh to display the current clipboard history
+                # Apply the default system theme
+        self.apply_system_theme(self.current_theme)
 
     def apply_system_theme(self, theme):
         """
@@ -126,6 +125,9 @@ class ClipboardApp:
                 self.edit_button.config(bg="darkgray", fg="black")
                 self.delete_button.config(bg="darkgray", fg="black")
                 self.theme_toggle_button.config(bg="darkgray", fg="black", text="Switch to Light Theme")
+                # Update grid items for dark mode
+                for widget in self.grid_frame.winfo_children():
+                    widget.config(bg="darkgray", fg="black")
             else:  # Light theme
                 self.root.config(bg="white")
                 self.grid_frame.config(bg="white")
@@ -134,6 +136,9 @@ class ClipboardApp:
                 self.edit_button.config(bg="lightgray", fg="black")
                 self.delete_button.config(bg="lightgray", fg="black")
                 self.theme_toggle_button.config(bg="lightgray", fg="black", text="Switch to Dark Theme")
+                # Update grid items for light mode
+                for widget in self.grid_frame.winfo_children():
+                    widget.config(bg="white", fg="black")
 
         except Exception as e:
             print(f"Error applying theme: {e}")
@@ -157,6 +162,16 @@ class ClipboardApp:
         """
         lines = (len(text) // max_length) + 1
         return lines * 2  # Adjust multiplier as needed to fit text properly
+    
+    def center_window(self, window, width, height):
+        """
+        Centers a window on the screen.
+        """
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     def refresh_grid(self):
         """
@@ -170,15 +185,33 @@ class ClipboardApp:
         fixed_width = 30  # Fixed width for labels
         max_length = 20  # Maximum length for truncation
 
+        # Configure theme-based appearance
+        bg_color = "darkgray" if self.current_theme == "dark" else "white"
+        fg_color = "black" if self.current_theme == "dark" else "black"
+
         for index, item in enumerate(clipboard_history):
             row = index // num_columns
             column = index % num_columns
             truncated_text = self.truncate_text(item, max_length)  # Truncate text for label
             label_height = self.calculate_label_height(truncated_text, max_length)  # Calculate label height
+
             # Create a label for each item in the history
-            label = tk.Label(self.grid_frame, text=truncated_text, borderwidth=1, relief="solid", width=fixed_width, height=label_height, wraplength=250, anchor=tk.W, justify=tk.LEFT)
+            label = tk.Label(
+                self.grid_frame,
+                text=truncated_text,
+                borderwidth=1,
+                relief="solid",
+                width=fixed_width,
+                height=label_height,
+                wraplength=250,
+                anchor=tk.W,
+                justify=tk.LEFT,
+                bg=bg_color,
+                fg=fg_color
+            )
             label.grid(row=row, column=column, padx=5, pady=5)
             label.full_text = item  # Store the full text in the label
+
             # Bind double-click to copy text and single-click to select label
             label.bind("<Double-Button-1>", lambda event, text=item: self.copy_text(text))
             label.bind("<Button-1>", lambda event, lbl=label: self.select_label(lbl))
@@ -188,6 +221,45 @@ class ClipboardApp:
             self.grid_frame.columnconfigure(column, weight=1)
         for row in range((len(clipboard_history) + num_columns - 1) // num_columns):
             self.grid_frame.rowconfigure(row, weight=1)
+
+    def show_message(self, message, title="Notification", error=False):
+        """
+        Displays a themed messagebox-style popup with the current theme applied.
+        """
+        # Create a Toplevel window
+        messagebox = Toplevel(self.root)
+        messagebox.title(title)
+
+        # Configure theme-based appearance
+        bg_color = "darkred" if error else ("darkblue" if self.current_theme == "dark" else "white")
+        fg_color = "white" if self.current_theme == "dark" or error else "black"
+
+        # Apply theme settings to the Toplevel window
+        messagebox.config(bg=bg_color)
+        messagebox.geometry("300x150")  # Customize size as needed
+        messagebox.resizable(False, False)
+
+        # Add a label for the message
+        label = tk.Label(messagebox, text=message, bg=bg_color, fg=fg_color, font=("Helvetica", 12), wraplength=280)
+        label.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+
+        # Add a Close button
+        close_button = tk.Button(
+            messagebox,
+            text="OK",
+            command=messagebox.destroy,
+            bg="darkgray" if self.current_theme == "dark" else "lightgray",
+            fg="black" if self.current_theme == "dark" else "black",
+        )
+        close_button.pack(pady=10)
+
+        # Center the popup on the screen
+        self.center_window(messagebox, 300, 150)
+
+        # Auto-close successful notifications after 2 seconds
+        if not error:
+            self.root.after(2000, messagebox.destroy)
+
 
     def select_label(self, label):
         """
@@ -210,7 +282,7 @@ class ClipboardApp:
             self.refresh_grid()  # Refresh the grid to reflect changes
             self.selected_label = None
         else:
-            messagebox.showwarning("Clipboard Manager", "No item selected!")
+            self.show_message("No item selected!", title="Error", error=True)
 
     def edit_selected(self):
         """
@@ -221,16 +293,34 @@ class ClipboardApp:
             edit_window = Toplevel(self.root)  # Create a new top-level window
             edit_window.title("Edit Text")
 
+            # Configure theme-based appearance
+            bg_color = "darkblue" if self.current_theme == "dark" else "white"
+            fg_color = "white" if self.current_theme == "dark" else "black"
+            btn_bg_color = "darkgray" if self.current_theme == "dark" else "lightgray"
+            btn_fg_color = "black" if self.current_theme == "dark" else "black"
+
+            edit_window.config(bg=bg_color)
+
             # Create a text widget with specified dimensions for editing
-            text_area = Text(edit_window, width=60, height=20)  # Adjust width and height as needed
+            text_area = Text(edit_window, width=60, height=20, bg=bg_color, fg=fg_color, insertbackground=fg_color)
             text_area.pack(padx=10, pady=10)
             text_area.insert(tk.END, old_text)  # Insert the old text into the text widget
 
             # Create a save button to save changes
-            save_button = tk.Button(edit_window, text="Save", command=lambda: self.save_edited_text(edit_window, text_area, old_text))
+            save_button = tk.Button(
+                edit_window,
+                text="Save",
+                command=lambda: self.save_edited_text(edit_window, text_area, old_text),
+                bg=btn_bg_color,
+                fg=btn_fg_color
+            )
             save_button.pack(pady=10)
+
+            # Center the window
+            self.center_window(edit_window, 500, 400)
         else:
-            messagebox.showwarning("Clipboard Manager", "No item selected!")
+            self.show_message("No item selected!", title="Error", error=True)
+
 
     def save_edited_text(self, window, text_area, old_text):
         """
@@ -244,25 +334,16 @@ class ClipboardApp:
             self.refresh_grid()  # Refresh the grid to reflect changes
             self.selected_label = None
             window.destroy()  # Close the edit window
+            self.show_message("Text edited successfully!", title="Success")
         else:
-            messagebox.showwarning("Clipboard Manager", "Text cannot be empty!")
+            self.show_message("Text cannot be empty!", title="Error", error=True)
 
     def copy_text(self, text):
         """
-        Copies the specified text to the clipboard and shows a message with a timer.
+        Copies the specified text to the clipboard and shows a themed message.
         """
         if text:
             pyperclip.copy(text)
-
-            # Create a temporary Toplevel window for the notification
-            notification = Toplevel(self.root)
-            notification.title("Clipboard Manager")
-            notification.geometry("200x100")  # Adjust dimensions as needed
-            notification.resizable(False, False)
-            notification_label = tk.Label(notification, text="Text copied to clipboard!", padx=10, pady=10)
-            notification_label.pack(expand=True)
-
-            # Schedule the window to close after 2 seconds
-            self.root.after(2000, notification.destroy)
+            self.show_message("Text copied to clipboard!", title="Success")
         else:
-            messagebox.showwarning("Clipboard Manager", "No text selected!")
+            self.show_message("No text selected!", title="Error", error=True)
