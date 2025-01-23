@@ -265,9 +265,10 @@ class ClipboardApp:
         """
         Highlights the selected label and deselects any previously selected label.
         """
+        bg_color = "darkgray" if self.current_theme == "dark" else "white"
         if self.selected_label:
             if self.selected_label.winfo_exists():
-                self.selected_label.config(bg="SystemButtonFace")
+                self.selected_label.config(bg=bg_color)
         self.selected_label = label
         label.config(bg="lightblue")
 
