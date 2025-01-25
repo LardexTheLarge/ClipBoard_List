@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox, Toplevel, Text, ttk
 import json
 import os
+from utils.theme_manager_classes import ThemeManager
 
 class ClipboardManager:
     """
@@ -78,6 +79,7 @@ class ClipboardApp:
         self.root.title("Clipboard Manager")
         self.clipboard_manager = clipboard_manager
         self.clipboard_manager.clipboard_app = self  # Pass reference to ClipboardManager
+        self.theme_manager = ThemeManager()  # Initialize the theme manager
 
 
         self.selected_label = None  # To keep track of the currently selected label
@@ -105,8 +107,8 @@ class ClipboardApp:
         self.theme_toggle_button.pack(side=tk.LEFT, padx=5)
 
         self.refresh_grid()  # Initial refresh to display the current clipboard history
-                # Apply the default system theme
-        self.apply_system_theme(self.current_theme)
+        
+        self.theme_manager.apply_theme(self.root, "dark")  # Set default theme
 
     def apply_system_theme(self, theme):
         """
@@ -147,8 +149,7 @@ class ClipboardApp:
         """
         Toggles between light and dark themes.
         """
-        self.current_theme = "dark" if self.current_theme == "light" else "light"
-        self.apply_system_theme(self.current_theme)
+        self.theme_manager.toggle_theme(self.root)
 
     def truncate_text(self, text, max_length=20):
         """

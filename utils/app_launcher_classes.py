@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+import threading
 from utils.clipboard_classes import ClipboardManager, ClipboardApp
+from utils.theme_manager_classes import ThemeManager
 
 
 class AppLauncher:
@@ -14,7 +16,12 @@ class AppLauncher:
         """
         self.root = root
         self.root.title("Application Launcher")
+        self.theme_manager = ThemeManager()
         self.root.geometry("400x300")
+
+        # Add a toggle theme button
+        theme_button = tk.Button(root, text="Switch Theme", command=self.toggle_theme)
+        theme_button.pack(pady=5)
         
         # Title label
         title_label = tk.Label(root, text="App Launcher", font=("Helvetica", 16, "bold"))
@@ -44,9 +51,17 @@ class AppLauncher:
         self.add_app_button = tk.Button(btn_frame, text="Add App", command=self.add_new_app)
         self.add_app_button.pack(side=tk.LEFT, padx=5)
 
+        self.theme_manager.apply_theme(self.root, "dark")  # Default to light theme
+
         # Dictionary to store available apps and their launch functions
         self.apps = {}
         self.populate_apps()
+    
+    def toggle_theme(self):
+        """
+        Toggles between light and dark themes using ThemeManager.
+        """
+        self.theme_manager.toggle_theme(self.root)
 
     def populate_apps(self):
         """
@@ -88,6 +103,10 @@ class AppLauncher:
         """
         new_window = tk.Toplevel(self.root)
         clipboard_manager = ClipboardManager()
+        # Run the clipboard monitoring in a separate thread
+        monitor_thread = threading.Thread(target=clipboard_manager.monitor_clipboard)
+        monitor_thread.daemon = True
+        monitor_thread.start()
         ClipboardApp(new_window, clipboard_manager)
 
     def show_message(self, message, error=False):

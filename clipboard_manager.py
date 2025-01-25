@@ -1,10 +1,5 @@
 import threading
 import tkinter as tk
-import sys
-import traceback
-import os
-import logging
-
 from utils.clipboard_classes import ClipboardManager, ClipboardApp
 
 
