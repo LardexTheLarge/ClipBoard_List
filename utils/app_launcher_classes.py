@@ -18,10 +18,6 @@ class AppLauncher:
         self.root.title("Application Launcher")
         self.theme_manager = ThemeManager()
         self.root.geometry("400x300")
-
-        # Add a toggle theme button
-        theme_button = tk.Button(root, text="Switch Theme", command=self.toggle_theme)
-        theme_button.pack(pady=5)
         
         # Title label
         title_label = tk.Label(root, text="App Launcher", font=("Helvetica", 16, "bold"))
@@ -51,7 +47,11 @@ class AppLauncher:
         self.add_app_button = tk.Button(btn_frame, text="Add App", command=self.add_new_app)
         self.add_app_button.pack(side=tk.LEFT, padx=5)
 
-        self.theme_manager.apply_theme(self.root, "dark")  # Default to light theme
+        # theme button
+        theme_button = tk.Button(btn_frame, text="Switch Theme", command=self.toggle_theme)
+        theme_button.pack(pady=5)
+
+        self.theme_manager.apply_theme(self.root, "dark")  # Default to dark theme
 
         # Dictionary to store available apps and their launch functions
         self.apps = {}
@@ -67,7 +67,7 @@ class AppLauncher:
         """
         Populates the list of apps in the launcher.
         """
-        # Example: Adding Clipboard App
+        
         self.add_app("Clipboard Manager", self.launch_clipboard_app)
 
     def add_app(self, app_name, launch_function):

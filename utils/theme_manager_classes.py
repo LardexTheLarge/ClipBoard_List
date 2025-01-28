@@ -35,7 +35,7 @@ class ThemeManager:
         Returns color settings based on the theme.
         """
         if theme == "dark":
-            return "darkblue", "white", "darkgray", "black"
+            return "darkblue", "black", "darkgray", "black"
         else:
             return "white", "black", "lightgray", "black"
 
