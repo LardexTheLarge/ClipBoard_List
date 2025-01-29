@@ -23,6 +23,9 @@ class ThemeManager:
         # Apply theme to child widgets recursively
         self._apply_theme_to_children(root, bg_color, fg_color, button_bg, button_fg)
 
+        # Apply theme to ttk widgets using ttk.Style
+        self._apply_ttk_theme(bg_color, fg_color, button_bg, button_fg)
+
     def toggle_theme(self, root):
         """
         Toggles between light and dark themes.
@@ -44,17 +47,19 @@ class ThemeManager:
         Recursively applies the theme to child widgets.
         """
         for child in widget.winfo_children():
+            # Skip ttk widgets (they are handled separately)
+            if isinstance(child, (ttk.Combobox, ttk.Button, ttk.Entry)):
+                continue
+
             # Apply background color universally
-            child.config(bg=bg_color)
+            if isinstance(child, (tk.Label, tk.Text, tk.Button, tk.Frame)):
+                child.config(bg=bg_color)
 
             # Apply foreground color selectively to text-based widgets
             if isinstance(child, (tk.Label, tk.Button, tk.Checkbutton, tk.Radiobutton)):
                 child.config(fg=fg_color)
             elif isinstance(child, tk.Text):
                 child.config(fg=fg_color, insertbackground=fg_color)
-            elif isinstance(child, ttk.Entry):  # TTK Widgets customization
-                style = ttk.Style()
-                style.configure("TEntry", fieldbackground=bg_color, foreground=fg_color)
 
             # Apply button-specific colors
             if isinstance(child, tk.Button):
@@ -62,4 +67,13 @@ class ThemeManager:
 
             # Recursively apply theme to children
             self._apply_theme_to_children(child, bg_color, fg_color, button_bg, button_fg)
+
+    def _apply_ttk_theme(self, bg_color, fg_color, button_bg, button_fg):
+        """
+        Applies the theme to ttk widgets using ttk.Style.
+        """
+        style = ttk.Style()
+        style.configure("TCombobox", fieldbackground=bg_color, foreground=fg_color, background=bg_color)
+        style.configure("TButton", background=button_bg, foreground=button_fg)
+        style.configure("TEntry", fieldbackground=bg_color, foreground=fg_color)
 
