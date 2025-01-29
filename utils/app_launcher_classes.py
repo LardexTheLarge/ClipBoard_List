@@ -44,9 +44,6 @@ class AppLauncher:
         self.launch_button = tk.Button(btn_frame, text="Launch App", command=self.launch_selected_app)
         self.launch_button.pack(side=tk.LEFT, padx=5)
 
-        self.add_app_button = tk.Button(btn_frame, text="Add App", command=self.add_new_app)
-        self.add_app_button.pack(side=tk.LEFT, padx=5)
-
         # theme button
         theme_button = tk.Button(btn_frame, text="Switch Theme", command=self.toggle_theme)
         theme_button.pack(pady=5)
