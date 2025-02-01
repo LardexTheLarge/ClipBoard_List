@@ -1,12 +1,14 @@
 import os
 import tkinter as tk
 from tkinter import messagebox, ttk
+import requests
 from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager class
 
 class NoteTakerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Note Taker")
+        self.server_url = "http://<your-computer-ip>:5000"  # Replace with your server's IP
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
@@ -49,37 +51,54 @@ class NoteTakerApp:
         self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
     def update_note_dropdown(self):
-        """Updates the dropdown list with available notes."""
-        notes = [f.replace(".txt", "") for f in os.listdir("notes") if f.endswith(".txt")]
-        self.title_entry["values"] = notes
+        """Updates the dropdown list with available notes from the server."""
+        try:
+            response = requests.get(f"{self.server_url}/notes")
+            if response.status_code == 200:
+                notes = response.json()
+                self.title_entry["values"] = notes
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Error", f"Failed to fetch notes: {e}")
 
     def save_note(self):
-        """Saves the note to a file with the given title."""
+        """Saves a note to the server."""
         title = self.title_entry.get()
-        content = self.note_text.get("1.0", tk.END)
+        content = self.note_text.get("1.0", tk.END).strip()
 
         if not title:
             messagebox.showwarning("Warning", "Please enter a title for the note.")
             return
 
-        # Save the note as a text file
-        with open(f"notes/{title}.txt", "w") as file:
-            file.write(content)
-
-        messagebox.showinfo("Success", "Note saved successfully!")
-        self.title_entry.delete(0, tk.END)
-        self.note_text.delete("1.0", tk.END)
-        self.update_note_dropdown()  # Update the dropdown after saving
+        try:
+            response = requests.post(
+                f"{self.server_url}/notes",
+                json={"title": title, "content": content}
+            )
+            if response.status_code == 200:
+                messagebox.showinfo("Success", "Note saved successfully!")
+                self.update_note_dropdown()
+            else:
+                messagebox.showerror("Error", response.json().get("error", "Failed to save note"))
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Error", f"Failed to save note: {e}")
 
     def load_note(self):
-        """Loads a note from a file based on the given title."""
+        """Loads a note from the server."""
         title = self.title_entry.get()
-
         if not title:
-            messagebox.showwarning("Warning", "Please enter a title to load the note.")
+            messagebox.showwarning("Warning", "Please select a note to load.")
             return
 
-        self.load_note_by_title(title)
+        try:
+            response = requests.get(f"{self.server_url}/notes/{title}")
+            if response.status_code == 200:
+                note = response.json()
+                self.note_text.delete("1.0", tk.END)
+                self.note_text.insert("1.0", note["content"])
+            else:
+                messagebox.showerror("Error", response.json().get("error", "Failed to load note"))
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Error", f"Failed to load note: {e}")
 
     def load_note_from_dropdown(self, event=None):
         """Loads a note when a title is selected from the dropdown."""
@@ -98,24 +117,23 @@ class NoteTakerApp:
             messagebox.showwarning("Warning", "Note not found.")
 
     def delete_note(self):
-        """Deletes a note file based on the selected title."""
+        """Deletes a note from the server."""
         title = self.title_entry.get()
-
         if not title:
             messagebox.showwarning("Warning", "Please select a note to delete.")
             return
 
-        # Confirm deletion with the user
         confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete the note '{title}'?")
         if confirm:
             try:
-                os.remove(f"notes/{title}.txt")
-                messagebox.showinfo("Success", f"Note '{title}' deleted successfully!")
-                self.title_entry.delete(0, tk.END)
-                self.note_text.delete("1.0", tk.END)
-                self.update_note_dropdown()  # Update the dropdown after deletion
-            except FileNotFoundError:
-                messagebox.showwarning("Warning", "Note not found.")
+                response = requests.delete(f"{self.server_url}/notes/{title}")
+                if response.status_code == 200:
+                    messagebox.showinfo("Success", f"Note '{title}' deleted successfully!")
+                    self.update_note_dropdown()
+                else:
+                    messagebox.showerror("Error", response.json().get("error", "Failed to delete note"))
+            except requests.exceptions.RequestException as e:
+                messagebox.showerror("Error", f"Failed to delete note: {e}")
 
     def toggle_theme(self):
         """Toggles between light and dark themes."""
