@@ -18,38 +18,27 @@ class AppLauncher:
         self.root = root
         self.root.title("Application Launcher")
         self.theme_manager = ThemeManager()
-        self.root.geometry("400x300")
-        
-        # Title label
-        title_label = tk.Label(root, text="App Launcher", font=("Helvetica", 16, "bold"))
-        title_label.pack(pady=10)
+        self.root.geometry("300x100")
 
-        # App list frame
-        self.app_list_frame = tk.Frame(root)
-        self.app_list_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+        # Configure grid weights for responsive layout
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)  # Allow the dropdown to expand
 
-        # Scrollable listbox
-        self.app_listbox = tk.Listbox(self.app_list_frame, height=10, width=30)
-        self.app_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Dropdown for app selection
+        self.app_dropdown = ttk.Combobox(root, width=30)
+        self.app_dropdown.grid(row=0, column=0, padx=10, pady=10, columnspan=2, sticky="ew")
+        self.app_dropdown.bind("<<ComboboxSelected>>", self.launch_selected_app)
 
-        # Scrollbar
-        scrollbar = tk.Scrollbar(self.app_list_frame, orient=tk.VERTICAL)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.app_listbox.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.app_listbox.yview)
+        # Buttons in one row, responsive to window size
+        self.launch_button = tk.Button(root, text="Launch App", command=self.launch_selected_app)
+        self.launch_button.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
 
-        # Action buttons
-        btn_frame = tk.Frame(root)
-        btn_frame.pack(pady=10)
+        self.theme_button = tk.Button(root, text="Switch Theme", command=self.toggle_theme)
+        self.theme_button.grid(row=1, column=1, padx=5, pady=10, sticky="ew")
 
-        self.launch_button = tk.Button(btn_frame, text="Launch App", command=self.launch_selected_app)
-        self.launch_button.pack(side=tk.LEFT, padx=5)
-
-        # theme button
-        theme_button = tk.Button(btn_frame, text="Switch Theme", command=self.toggle_theme)
-        theme_button.pack(pady=5)
-
-        self.theme_manager.apply_theme(self.root, "dark")  # Default to dark theme
+        # Apply the default theme (dark)
+        self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
         # Dictionary to store available apps and their launch functions
         self.apps = {}
@@ -74,21 +63,18 @@ class AppLauncher:
         Adds a new app to the launcher.
         """
         self.apps[app_name] = launch_function
-        self.app_listbox.insert(tk.END, app_name)
+        self.app_dropdown["values"] = list(self.apps.keys())  # Update dropdown values
 
-    def launch_selected_app(self):
+    def launch_selected_app(self, event=None):
         """
-        Launches the selected application from the list.
+        Launches the selected application from the dropdown.
         """
-        selected_index = self.app_listbox.curselection()
-        if selected_index:
-            app_name = self.app_listbox.get(selected_index)
-            if app_name in self.apps:
-                self.apps[app_name]()  # Call the launch function
-            else:
-                self.show_message(f"App '{app_name}' not found!", error=True)
+        app_name = self.app_dropdown.get()
+
+        if app_name in self.apps:
+            self.apps[app_name]()  # Call the launch function
         else:
-            self.show_message("No app selected!", error=True)
+            self.show_message(f"App '{app_name}' not found!", error=True)
 
     def add_new_app(self):
         """
