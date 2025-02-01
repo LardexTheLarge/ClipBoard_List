@@ -38,7 +38,7 @@ class ThemeManager:
         Returns color settings based on the theme.
         """
         if theme == "dark":
-            return "darkblue", "black", "darkgray", "black"
+            return "darkblue", "Black", "darkgray", "black"
         else:
             return "white", "black", "lightgray", "black"
 
@@ -53,7 +53,7 @@ class ThemeManager:
 
             # Apply background color universally
             if isinstance(child, (tk.Label, tk.Text, tk.Button, tk.Frame)):
-                child.config(bg=bg_color)
+                child.config(bg=button_bg)
 
             # Apply foreground color selectively to text-based widgets
             if isinstance(child, (tk.Label, tk.Button, tk.Checkbutton, tk.Radiobutton)):

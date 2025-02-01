@@ -8,6 +8,8 @@ clipboard_history.json
 pinned_items.json
 # C extensions
 *.so
+notes
+
 
 # Distribution / packaging
 .Python

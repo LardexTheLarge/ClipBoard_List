@@ -3,6 +3,7 @@ from tkinter import ttk
 import threading
 from utils.clipboard_classes import ClipboardManager, ClipboardApp
 from utils.theme_manager_classes import ThemeManager
+from utils.notes_class import NoteTakerApp
 
 
 class AppLauncher:
@@ -66,6 +67,7 @@ class AppLauncher:
         """
         
         self.add_app("Clipboard Manager", self.launch_clipboard_app)
+        self.add_app("Note Taker", self.launch_notetaker_app)
 
     def add_app(self, app_name, launch_function):
         """
@@ -105,6 +107,13 @@ class AppLauncher:
         monitor_thread.daemon = True
         monitor_thread.start()
         ClipboardApp(new_window, clipboard_manager)
+
+    def launch_notetaker_app(self):
+        """
+        Launches the Note taking application.
+        """
+        new_window = tk.Toplevel(self.root)
+        NoteTakerApp(new_window)
 
     def show_message(self, message, error=False):
         """
