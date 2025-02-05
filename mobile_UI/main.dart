@@ -7,6 +7,8 @@ void main() {
 }
 
 class NoteTakerApp extends StatelessWidget {
+  const NoteTakerApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,12 +19,15 @@ class NoteTakerApp extends StatelessWidget {
 }
 
 class NoteTakerHome extends StatefulWidget {
+  const NoteTakerHome({super.key});
+
   @override
   _NoteTakerHomeState createState() => _NoteTakerHomeState();
 }
 
 class _NoteTakerHomeState extends State<NoteTakerHome> {
-  final String serverUrl = "http://<your-computer-ip>:5000"; // Replace with your server's IP
+  final String serverUrl =
+      "http://<your-computer-ip>:5000"; // Replace with your server's IP
   List<String> notes = [];
   String selectedNote = "";
   String noteContent = "";

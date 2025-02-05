@@ -9,7 +9,7 @@ pinned_items.json
 # C extensions
 *.so
 notes
-
+.idea
 
 # Distribution / packaging
 .Python
