@@ -2,13 +2,16 @@ import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 import requests
+from dotenv import load_dotenv
 from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager class
 
 class NoteTakerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Note Taker")
-        self.server_url = "http://<your-computer-ip>:5000"  # Replace with your server's IP
+        load_dotenv()  # Load environment variables from .env file
+        server_ip = os.getenv("SERVER_IP")
+        self.server_url = f"""http://{server_ip}:5000""" # Replace with your server's IP
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
