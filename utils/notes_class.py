@@ -10,8 +10,10 @@ class NoteTakerApp:
         self.root = root
         self.root.title("Note Taker")
         load_dotenv()  # Load environment variables from .env file
+
         server_ip = os.getenv("SERVER_IP")
         self.server_url = f"""http://{server_ip}:5000""" # Replace with your server's IP
+        self.server_available = self.check_server_availability()
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
@@ -53,18 +55,31 @@ class NoteTakerApp:
         # Apply the default theme (dark)
         self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
-    def update_note_dropdown(self):
-        """Updates the dropdown list with available notes from the server."""
+
+    def check_server_availability(self):
+        """Check if the server is reachable."""
         try:
-            response = requests.get(f"{self.server_url}/notes")
-            if response.status_code == 200:
-                notes = response.json()
-                self.title_entry["values"] = notes
-        except requests.exceptions.RequestException as e:
-            messagebox.showerror("Error", f"Failed to fetch notes: {e}")
+            response = requests.get(f"{self.server_url}/ping", timeout=2)  # Ensure the backend has a `/ping` route
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False  # If the server is unreachable, switch to offline mode
+
+    def update_note_dropdown(self):
+        """Update note dropdown from server (if available) or local storage."""
+        if self.server_available:
+            try:
+                response = requests.get(f"{self.server_url}/notes")
+                if response.status_code == 200:
+                    self.title_entry["values"] = response.json()
+            except requests.exceptions.RequestException:
+                self.server_available = False  # If request fails, switch to offline mode
+
+        if not self.server_available:  # Offline mode: Load local notes
+            local_notes = [f[:-4] for f in os.listdir("notes") if f.endswith(".txt")]
+            self.title_entry["values"] = local_notes
 
     def save_note(self):
-        """Saves a note to the server."""
+        """Save note to server (if available) or locally."""
         title = self.title_entry.get()
         content = self.note_text.get("1.0", tk.END).strip()
 
@@ -72,36 +87,46 @@ class NoteTakerApp:
             messagebox.showwarning("Warning", "Please enter a title for the note.")
             return
 
-        try:
-            response = requests.post(
-                f"{self.server_url}/notes",
-                json={"title": title, "content": content}
-            )
-            if response.status_code == 200:
-                messagebox.showinfo("Success", "Note saved successfully!")
-                self.update_note_dropdown()
-            else:
-                messagebox.showerror("Error", response.json().get("error", "Failed to save note"))
-        except requests.exceptions.RequestException as e:
-            messagebox.showerror("Error", f"Failed to save note: {e}")
+        if self.server_available:
+            try:
+                response = requests.post(f"{self.server_url}/notes", json={"title": title, "content": content})
+                if response.status_code == 200:
+                    messagebox.showinfo("Success", "Note saved successfully!")
+                    self.update_note_dropdown()
+                    return
+            except requests.exceptions.RequestException:
+                self.server_available = False  # Server is down, fallback to offline mode
+
+        # Save locally if server is unavailable
+        with open(f"notes/{title}.txt", "w") as file:
+            file.write(content)
+        messagebox.showinfo("Success", "Note saved locally!")
+        self.update_note_dropdown()
 
     def load_note(self):
-        """Loads a note from the server."""
+        """Load note from server or local storage."""
         title = self.title_entry.get()
         if not title:
             messagebox.showwarning("Warning", "Please select a note to load.")
             return
 
+        if self.server_available:
+            try:
+                response = requests.get(f"{self.server_url}/notes/{title}")
+                if response.status_code == 200:
+                    self.note_text.delete("1.0", tk.END)
+                    self.note_text.insert("1.0", response.json()["content"])
+                    return
+            except requests.exceptions.RequestException:
+                self.server_available = False  # Server is down, switch to offline
+
+        # Load locally if server is unavailable
         try:
-            response = requests.get(f"{self.server_url}/notes/{title}")
-            if response.status_code == 200:
-                note = response.json()
+            with open(f"notes/{title}.txt", "r") as file:
                 self.note_text.delete("1.0", tk.END)
-                self.note_text.insert("1.0", note["content"])
-            else:
-                messagebox.showerror("Error", response.json().get("error", "Failed to load note"))
-        except requests.exceptions.RequestException as e:
-            messagebox.showerror("Error", f"Failed to load note: {e}")
+                self.note_text.insert("1.0", file.read())
+        except FileNotFoundError:
+            messagebox.showwarning("Warning", "Note not found.")
 
     def load_note_from_dropdown(self, event=None):
         """Loads a note when a title is selected from the dropdown."""
@@ -120,23 +145,33 @@ class NoteTakerApp:
             messagebox.showwarning("Warning", "Note not found.")
 
     def delete_note(self):
-        """Deletes a note from the server."""
+        """Delete note from server or locally."""
         title = self.title_entry.get()
         if not title:
             messagebox.showwarning("Warning", "Please select a note to delete.")
             return
 
-        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete the note '{title}'?")
-        if confirm:
+        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete '{title}'?")
+        if not confirm:
+            return
+
+        if self.server_available:
             try:
                 response = requests.delete(f"{self.server_url}/notes/{title}")
                 if response.status_code == 200:
                     messagebox.showinfo("Success", f"Note '{title}' deleted successfully!")
                     self.update_note_dropdown()
-                else:
-                    messagebox.showerror("Error", response.json().get("error", "Failed to delete note"))
-            except requests.exceptions.RequestException as e:
-                messagebox.showerror("Error", f"Failed to delete note: {e}")
+                    return
+            except requests.exceptions.RequestException:
+                self.server_available = False  # Server is down, switch to offline mode
+
+        # Delete locally if server is unavailable
+        try:
+            os.remove(f"notes/{title}.txt")
+            messagebox.showinfo("Success", f"Note '{title}' deleted locally!")
+            self.update_note_dropdown()
+        except FileNotFoundError:
+            messagebox.showwarning("Warning", "Note not found locally.")
 
     def toggle_theme(self):
         """Toggles between light and dark themes."""
