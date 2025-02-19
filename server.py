@@ -8,6 +8,11 @@ NOTES_DIR = "notes"
 if not os.path.exists(NOTES_DIR):
     os.makedirs(NOTES_DIR)
 
+@app.route("/ping", methods=["GET"])
+def ping():
+    """Health check endpoint to verify server availability."""
+    return jsonify({"status": "ok"}), 200
+
 @app.route("/notes", methods=["GET"])
 def get_notes():
     """Returns a list of all notes."""
