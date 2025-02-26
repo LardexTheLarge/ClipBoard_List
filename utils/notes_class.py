@@ -227,8 +227,18 @@ class NoteTakerApp:
             messagebox.showwarning("Warning", "Note not found locally.")
 
     def toggle_theme(self):
-        """Toggles between light and dark themes."""
-        self.theme_manager.toggle_theme(self.root)
+        """Toggles between light and dark themes and updates the UI."""
+        self.theme_manager.toggle_theme(self.root)  # Apply the new theme globally
+
+        # Get new theme colors
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+        # Apply background color to main_frame
+        self.main_frame.config(bg=bg_color)
+
+        # Also update the button_frame (if needed)
+        self.button_frame.config(bg=bg_color)
+
 
 
 
