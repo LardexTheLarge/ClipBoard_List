@@ -9,44 +9,45 @@ class NoteTakerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Note Taker")
-        load_dotenv()  # Load environment variables from .env file
+        load_dotenv()
 
         server_ip = os.getenv("SERVER_IP")
-        self.server_url = f"http://{server_ip}:5000"  # Replace with your server's IP
+        self.server_url = f"http://{server_ip}:5000"
         self.server_available = self.check_server_availability()
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
-        # Create a directory to store notes if it doesn't exist
-        if not os.path.exists("notes"):
-            os.makedirs("notes")
+        # Apply dark blue background
+        self.root.config(bg=bg_color)
 
-        # Main container for grid view and detail view
-        self.main_frame = tk.Frame(root)
+        # Ensure there's only ONE main frame with the correct theme
+        self.main_frame = tk.Frame(root, bg=bg_color)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Buttons at the bottom (static row)
-        self.button_frame = tk.Frame(root)
+        # Buttons frame
+        self.button_frame = tk.Frame(root, bg=bg_color)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.add_button = tk.Button(self.button_frame, text="Add Note", command=self.add_note)
+        self.add_button = tk.Button(self.button_frame, text="Add Note", command=self.add_note, bg=button_bg, fg=button_fg)
         self.add_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_note)
+        self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_note, bg=button_bg, fg=button_fg)
         self.delete_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.open_button = tk.Button(self.button_frame, text="Open", command=self.open_note)
+        self.open_button = tk.Button(self.button_frame, text="Open", command=self.open_note, bg=button_bg, fg=button_fg)
         self.open_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.theme_button = tk.Button(self.button_frame, text="Switch Theme", command=self.toggle_theme)
+        self.theme_button = tk.Button(self.button_frame, text="Switch Theme", command=self.toggle_theme, bg=button_bg, fg=button_fg)
         self.theme_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # Apply the default theme (dark)
+        self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
         # Initialize grid view
         self.show_grid_view()
 
-        # Apply the default theme (dark)
-        self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
     def check_server_availability(self):
         """Check if the server is reachable."""
@@ -58,6 +59,12 @@ class NoteTakerApp:
 
     def show_grid_view(self):
         """Display the grid view with note titles."""
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+        # Set correct background color
+        self.main_frame.config(bg=bg_color)
+        self.button_frame.config(bg=bg_color)
+
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -76,33 +83,40 @@ class NoteTakerApp:
                 width=20,
                 height=5,
                 command=lambda title=note_title: self.open_note(title),
+                bg=button_bg, fg=button_fg  # Ensure correct theme colors
             )
             note_button.grid(row=row, column=col, padx=5, pady=5)
 
     def show_detail_view(self, title, is_new_note=False):
         """Display the detail view for a specific note."""
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+        # Set correct background color
+        self.main_frame.config(bg=bg_color)
+        self.button_frame.config(bg=bg_color)
+
         # Clear the main frame
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
         # Display title
-        self.title_entry = tk.Entry(self.main_frame, font=("Arial", 16))
+        self.title_entry = tk.Entry(self.main_frame, font=("Arial", 16), bg=bg_color, fg=fg_color)
         self.title_entry.pack(pady=10)
         self.title_entry.insert(0, title if not is_new_note else "")
 
         # Display content
-        self.note_text = tk.Text(self.main_frame, width=50, height=20)
+        self.note_text = tk.Text(self.main_frame, width=50, height=20, bg=bg_color, fg=fg_color)
         self.note_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         if not is_new_note:
             content = self.get_note_content(title)
             self.note_text.insert("1.0", content)
 
         # Add save button
-        save_button = tk.Button(self.main_frame, text="Save", command=lambda: self.save_note(is_new_note))
+        save_button = tk.Button(self.main_frame, text="Save", command=lambda: self.save_note(is_new_note), bg=button_bg, fg=button_fg)
         save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Add back button
-        back_button = tk.Button(self.main_frame, text="Back", command=self.show_grid_view)
+        back_button = tk.Button(self.main_frame, text="Back", command=self.show_grid_view, bg=button_bg, fg=button_fg)
         back_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     def add_note(self):
