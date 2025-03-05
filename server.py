@@ -52,6 +52,21 @@ def delete_note(title):
         return jsonify({"message": f"Note '{title}' deleted successfully"})
     except FileNotFoundError:
         return jsonify({"error": "Note not found"}), 404
+    
+@app.route("/notes/<title>", methods=["PUT"])
+def update_note(title):
+    """Updates an existing note (or creates a new one if it doesn't exist)."""
+    data = request.json
+    content = data.get("content")
+
+    if not content:
+        return jsonify({"error": "Content is required"}), 400
+
+    with open(f"notes/{title}.txt", "w") as file:
+        file.write(content)
+
+    return jsonify({"message": f"Note '{title}' updated successfully!"}), 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

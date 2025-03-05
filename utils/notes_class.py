@@ -8,6 +8,8 @@ from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager 
 class NoteTakerApp:
     def __init__(self, root):
         self.root = root
+        self.selected_label = None  # Track the currently selected note
+        self.selected_note = None  # Track selected note title
         self.root.title("Note Taker")
         load_dotenv()
 
@@ -77,15 +79,25 @@ class NoteTakerApp:
             row = i // 3
             col = i % 3
 
-            note_button = tk.Button(
+            note_label = tk.Label(
                 self.main_frame,
                 text=note_title,
                 width=20,
-                height=5,
-                command=lambda title=note_title: self.open_note(title),
-                bg=button_bg, fg=button_fg  # Ensure correct theme colors
+                height=6,
+                relief="solid",
+                borderwidth=1,
+                cursor="hand2",
+                bg=button_bg,  # Apply theme background
+                fg=button_fg   # Apply theme text color
             )
-            note_button.grid(row=row, column=col, padx=5, pady=5)
+            note_label.grid(row=row, column=col, padx=5, pady=5)
+
+            # Bind click event to selection
+            note_label.bind("<Button-1>", lambda event, lbl=note_label, title=note_title: self.select_note(lbl, title))
+
+        # Apply theme to existing selected label if any
+        if self.selected_label and self.selected_label.winfo_exists():
+            self.selected_label.config(bg="lightblue")  # Keep highlight effect
 
     def show_detail_view(self, title, is_new_note=False):
         """Display the detail view for a specific note."""
@@ -100,12 +112,12 @@ class NoteTakerApp:
             widget.destroy()
 
         # Display title
-        self.title_entry = tk.Entry(self.main_frame, font=("Arial", 16), bg=bg_color, fg=fg_color)
+        self.title_entry = tk.Entry(self.main_frame, font=("Arial", 16), bg=button_bg, fg=fg_color)
         self.title_entry.pack(pady=10)
         self.title_entry.insert(0, title if not is_new_note else "")
 
         # Display content
-        self.note_text = tk.Text(self.main_frame, width=50, height=20, bg=bg_color, fg=fg_color)
+        self.note_text = tk.Text(self.main_frame, width=50, height=20, bg=button_bg, fg=fg_color)
         self.note_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         if not is_new_note:
             content = self.get_note_content(title)
@@ -164,10 +176,26 @@ class NoteTakerApp:
 
         self.show_detail_view(title)
 
+    def select_note(self, label, title):
+        """
+        Highlights the selected note and deselects any previously selected one.
+        """
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+        # Reset the background color of the previously selected label
+        if self.selected_label and self.selected_label.winfo_exists():
+            self.selected_label.config(bg=button_bg, fg=button_fg)
+
+        # Set new selected label and apply highlight
+        self.selected_label = label
+        self.selected_note = title
+        label.config(bg="lightblue")  # Highlight the selected note
+
+
     def get_selected_note(self):
         """Get the currently selected note (for grid view)."""
         # This can be implemented if you add selection logic (e.g., highlighting)
-        return None  # Placeholder
+        return self.selected_note
 
     def save_note(self, is_new_note):
         """Save the current note."""
@@ -180,11 +208,11 @@ class NoteTakerApp:
 
         if self.server_available:
             try:
-                response = requests.post(
-                    f"{self.server_url}/notes",
+                response = requests.put(
+                    f"{self.server_url}/notes/{title}",
                     json={"title": title, "content": content},
                 )
-                if response.status_code == 200:
+                if response.status_code in [200, 201]:
                     messagebox.showinfo("Success", "Note saved successfully!")
                     self.show_grid_view()
                     return
