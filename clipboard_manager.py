@@ -13,4 +13,3 @@ monitor_thread.start()
 root = tk.Tk()
 app = ClipboardApp(root, clipboard_manager)
 root.mainloop()
-

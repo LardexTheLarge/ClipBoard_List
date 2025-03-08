@@ -3,6 +3,7 @@ import time
 import threading
 import tkinter as tk
 from tkinter import messagebox, Toplevel, Text, ttk
+from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager class
 import json
 import os
 
@@ -78,8 +79,9 @@ class ClipboardApp:
         self.root.title("Clipboard Manager")
         self.clipboard_manager = clipboard_manager
         self.clipboard_manager.clipboard_app = self  # Pass reference to ClipboardManager
-        # self.theme_manager = ThemeManager()  # Initialize the theme manager
 
+        self.theme_manager = ThemeManager()  # Initialize the theme manager
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
         self.selected_label = None  # To keep track of the currently selected label
         self.current_theme = "dark"  # Default theme
@@ -89,68 +91,60 @@ class ClipboardApp:
         self.grid_frame.pack(pady=20)
 
         # Create a frame to hold the buttons horizontally
-        self.button_frame = tk.Frame(root)
+        self.button_frame = tk.Frame(root, bg=bg_color)
         self.button_frame.pack(pady=10)
 
         # Create and pack buttons for refresh, edit, and delete actions
-        self.refresh_button = tk.Button(self.button_frame, text="Refresh", command=self.refresh_grid)
+        self.refresh_button = tk.Button(self.button_frame, text="Refresh", command=self.refresh_grid, bg=button_bg, fg=button_fg)
         self.refresh_button.pack(side=tk.LEFT, padx=5)
 
-        self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.edit_selected)
+        self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.edit_selected, bg=button_bg, fg=button_fg)
         self.edit_button.pack(side=tk.LEFT, padx=5)
 
-        self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_selected)
+        self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_selected, bg=button_bg, fg=button_fg)
         self.delete_button.pack(side=tk.LEFT, padx=5)
     
-        self.theme_toggle_button = tk.Button(self.button_frame, text="Switch to Dark Theme", command=self.toggle_theme)
+        self.theme_toggle_button = tk.Button(self.button_frame, text="Switch to Dark Theme", command=self.toggle_theme, bg=button_bg, fg=button_fg)
         self.theme_toggle_button.pack(side=tk.LEFT, padx=5)
 
         self.refresh_grid()  # Initial refresh to display the current clipboard history
         
         # Apply the default system theme
-        self.apply_system_theme(self.current_theme)
-
-    def apply_system_theme(self, theme):
-        """
-        Configures the application to use the specified theme (light/dark).
-        """
-        try:
-            # Use ttk style for modern theming
-            style = ttk.Style()
-
-            # Apply the specified theme
-            if theme == "dark":
-                self.root.config(bg="darkblue")
-                self.grid_frame.config(bg="darkblue")
-                self.button_frame.config(bg="darkblue")
-                self.refresh_button.config(bg="darkgray", fg="black")
-                self.edit_button.config(bg="darkgray", fg="black")
-                self.delete_button.config(bg="darkgray", fg="black")
-                self.theme_toggle_button.config(bg="darkgray", fg="black", text="Switch to Light Theme")
-                # Update grid items for dark mode
-                for widget in self.grid_frame.winfo_children():
-                    widget.config(bg="darkgray", fg="black")
-            else:  # Light theme
-                self.root.config(bg="white")
-                self.grid_frame.config(bg="white")
-                self.button_frame.config(bg="white")
-                self.refresh_button.config(bg="lightgray", fg="black")
-                self.edit_button.config(bg="lightgray", fg="black")
-                self.delete_button.config(bg="lightgray", fg="black")
-                self.theme_toggle_button.config(bg="lightgray", fg="black", text="Switch to Dark Theme")
-                # Update grid items for light mode
-                for widget in self.grid_frame.winfo_children():
-                    widget.config(bg="white", fg="black")
-
-        except Exception as e:
-            print(f"Error applying theme: {e}")
+        self.apply_theme()
 
     def toggle_theme(self):
         """
         Toggles between light and dark themes.
         """
-        self.current_theme = "dark" if self.current_theme == "light" else "light"
-        self.apply_system_theme(self.current_theme)
+        # Toggle the theme using ThemeManager
+        self.theme_manager.toggle_theme(self.root)
+
+        # Reapply the theme to all widgets
+        self.apply_theme()
+
+    def apply_theme(self):
+        """
+        Applies the current theme to all widgets in the app.
+        """
+        # Get the current theme colors
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+        # Apply theme to the root window
+        self.root.config(bg=bg_color)
+
+        # Apply theme to all frames
+        self.grid_frame.config(bg=bg_color)
+        self.button_frame.config(bg=bg_color)
+
+        # Apply theme to all buttons
+        for widget in self.button_frame.winfo_children():
+            if isinstance(widget, tk.Button):
+                widget.config(bg=button_bg, fg=button_fg)
+
+        # Apply theme to all labels in the grid
+        for widget in self.grid_frame.winfo_children():
+            if isinstance(widget, tk.Label):
+                widget.config(bg=button_bg, fg=button_fg)
 
     def truncate_text(self, text, max_length=20):
         """
@@ -179,6 +173,8 @@ class ClipboardApp:
         """
         Refreshes the grid to display the current clipboard history.
         """
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
         for widget in self.grid_frame.winfo_children():
             widget.destroy()  # Clear existing widgets
         
@@ -186,10 +182,6 @@ class ClipboardApp:
         num_columns = 3  # Number of columns in the grid
         fixed_width = 30  # Fixed width for labels
         max_length = 20  # Maximum length for truncation
-
-        # Configure theme-based appearance
-        bg_color = "darkgray" if self.current_theme == "dark" else "white"
-        fg_color = "black" if self.current_theme == "dark" else "black"
 
         for index, item in enumerate(clipboard_history):
             row = index // num_columns
@@ -208,8 +200,8 @@ class ClipboardApp:
                 wraplength=250,
                 anchor=tk.W,
                 justify=tk.LEFT,
-                bg=bg_color,
-                fg=fg_color
+                bg=button_bg,
+                fg=button_fg
             )
             label.grid(row=row, column=column, padx=5, pady=5)
             label.full_text = item  # Store the full text in the label
@@ -228,13 +220,11 @@ class ClipboardApp:
         """
         Displays a themed messagebox-style popup with the current theme applied.
         """
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
         # Create a Toplevel window
         messagebox = Toplevel(self.root)
         messagebox.title(title)
-
-        # Configure theme-based appearance
-        bg_color = "darkred" if error else ("darkblue" if self.current_theme == "dark" else "white")
-        fg_color = "white" if self.current_theme == "dark" or error else "black"
 
         # Apply theme settings to the Toplevel window
         messagebox.config(bg=bg_color)
@@ -250,8 +240,8 @@ class ClipboardApp:
             messagebox,
             text="OK",
             command=messagebox.destroy,
-            bg="darkgray" if self.current_theme == "dark" else "lightgray",
-            fg="black" if self.current_theme == "dark" else "black",
+            bg=button_bg,
+            fg=button_fg
         )
         close_button.pack(pady=10)
 
@@ -267,10 +257,10 @@ class ClipboardApp:
         """
         Highlights the selected label and deselects any previously selected label.
         """
-        bg_color = "darkgray" if self.current_theme == "dark" else "white"
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
         if self.selected_label:
             if self.selected_label.winfo_exists():
-                self.selected_label.config(bg=bg_color)
+                self.selected_label.config(bg=button_bg)
         self.selected_label = label
         label.config(bg="lightblue")
 
@@ -291,21 +281,17 @@ class ClipboardApp:
         """
         Opens a new window for editing the text of the currently selected label.
         """
+        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
         if self.selected_label:
             old_text = self.selected_label.full_text  # Get the full text from the label
             edit_window = Toplevel(self.root)  # Create a new top-level window
             edit_window.title("Edit Text")
 
-            # Configure theme-based appearance
-            bg_color = "darkblue" if self.current_theme == "dark" else "white"
-            fg_color = "white" if self.current_theme == "dark" else "black"
-            btn_bg_color = "darkgray" if self.current_theme == "dark" else "lightgray"
-            btn_fg_color = "black" if self.current_theme == "dark" else "black"
-
             edit_window.config(bg=bg_color)
 
             # Create a text widget with specified dimensions for editing
-            text_area = Text(edit_window, width=60, height=20, bg=bg_color, fg=fg_color, insertbackground=fg_color)
+            text_area = Text(edit_window, width=60, height=20, bg=button_bg, fg=fg_color, insertbackground=fg_color)
             text_area.pack(padx=10, pady=10)
             text_area.insert(tk.END, old_text)  # Insert the old text into the text widget
 
@@ -314,8 +300,8 @@ class ClipboardApp:
                 edit_window,
                 text="Save",
                 command=lambda: self.save_edited_text(edit_window, text_area, old_text),
-                bg=btn_bg_color,
-                fg=btn_fg_color
+                bg=button_bg,
+                fg=button_fg
             )
             save_button.pack(pady=10)
 

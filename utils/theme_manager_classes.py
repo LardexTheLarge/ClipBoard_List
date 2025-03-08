@@ -44,29 +44,38 @@ class ThemeManager:
 
     def _apply_theme_to_children(self, widget, bg_color, fg_color, button_bg, button_fg):
         """
-        Recursively applies the theme to child widgets.
+        Recursively applies the theme to all Tkinter widgets.
         """
         for child in widget.winfo_children():
-            # Skip ttk widgets (they are handled separately)
-            if isinstance(child, (ttk.Combobox, ttk.Button, ttk.Entry)):
+            # Skip ttk widgets (handled separately)
+            if isinstance(child, (ttk.Combobox, ttk.Button, ttk.Entry, ttk.Label, ttk.Frame)):
                 continue
 
             # Apply background color universally
-            if isinstance(child, (tk.Label, tk.Text, tk.Button, tk.Frame)):
-                child.config(bg=button_bg)
+            if isinstance(child, (tk.Frame, tk.Canvas, tk.PanedWindow, tk.LabelFrame)):
+                child.config(bg=bg_color)
 
-            # Apply foreground color selectively to text-based widgets
-            if isinstance(child, (tk.Label, tk.Button, tk.Checkbutton, tk.Radiobutton)):
-                child.config(fg=fg_color)
+            # Apply text-based foreground color
+            if isinstance(child, (tk.Button, tk.Checkbutton, tk.Radiobutton, tk.Message)):
+                child.config(bg=bg_color, fg=fg_color)
+
+            # Ensure input fields (Entry, Text) have correct colors
+            if isinstance(child, tk.Entry):
+                child.config(bg=button_bg, fg=fg_color, insertbackground=fg_color)
             elif isinstance(child, tk.Text):
-                child.config(fg=fg_color, insertbackground=fg_color)
+                child.config(bg=button_bg, fg=fg_color, insertbackground=fg_color)
+
+            # Apply styling to menu widgets
+            if isinstance(child, tk.Menu):
+                child.config(bg=bg_color, fg=fg_color)
 
             # Apply button-specific colors
-            if isinstance(child, tk.Button):
-                child.config(bg=button_bg, fg=button_fg)
+            if isinstance(child, (tk.Label, tk.Button)):
+                child.config(bg=button_bg, fg=button_fg, activebackground=button_bg, activeforeground=button_fg)
 
             # Recursively apply theme to children
             self._apply_theme_to_children(child, bg_color, fg_color, button_bg, button_fg)
+
 
     def _apply_ttk_theme(self, bg_color, fg_color, button_bg, button_fg):
         """
