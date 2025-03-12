@@ -26,7 +26,7 @@ class NoteTakerApp:
 
         # Ensure there's only ONE main frame with the correct theme
         self.main_frame = tk.Frame(root, bg=bg_color)
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
         # Buttons frame
         self.button_frame = tk.Frame(root, bg=bg_color)

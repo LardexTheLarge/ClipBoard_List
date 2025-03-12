@@ -20,6 +20,9 @@ class AppLauncher:
         self.theme_manager = ThemeManager()
         self.root.geometry("300x100")
 
+        # List to store open application windows
+        self.open_apps = []
+
         # Configure grid weights for responsive layout
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_columnconfigure(1, weight=1)
@@ -49,6 +52,10 @@ class AppLauncher:
         Toggles between light and dark themes using ThemeManager.
         """
         self.theme_manager.toggle_theme(self.root)
+
+        # Apply the theme to all open applications
+        for app_window in self.open_apps:
+            self.theme_manager.apply_theme(app_window, self.theme_manager.current_theme)
 
     def populate_apps(self):
         """
@@ -94,12 +101,18 @@ class AppLauncher:
         monitor_thread.start()
         ClipboardApp(new_window, clipboard_manager)
 
+        # Add the new window to the list of open applications
+        self.open_apps.append(new_window)
+
     def launch_notetaker_app(self):
         """
         Launches the Note taking application.
         """
         new_window = tk.Toplevel(self.root)
         NoteTakerApp(new_window)
+
+        # Add the new window to the list of open applications
+        self.open_apps.append(new_window)
 
     def show_message(self, message, error=False):
         """

@@ -84,33 +84,33 @@ class ClipboardApp:
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
         self.selected_label = None  # To keep track of the currently selected label
-        self.current_theme = "dark"  # Default theme
+        self.is_editor_mode = False  # Track whether the app is in editor mode
 
         # Create and pack the frame that will hold the grid of clipboard items
         self.grid_frame = tk.Frame(root)
-        self.grid_frame.pack(pady=20)
+        self.grid_frame.pack(fill=tk.BOTH, expand=True)
 
         # Create a frame to hold the buttons horizontally
         self.button_frame = tk.Frame(root, bg=bg_color)
-        self.button_frame.pack(pady=10)
+        self.button_frame.pack(side=tk.BOTTOM, pady=10, anchor=tk.CENTER)
 
         # Create and pack buttons for refresh, edit, and delete actions
         self.refresh_button = tk.Button(self.button_frame, text="Refresh", command=self.refresh_grid, bg=button_bg, fg=button_fg)
         self.refresh_button.pack(side=tk.LEFT, padx=5)
 
-        self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.edit_selected, bg=button_bg, fg=button_fg)
+        self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.toggle_editor_mode, bg=button_bg, fg=button_fg)
         self.edit_button.pack(side=tk.LEFT, padx=5)
 
         self.delete_button = tk.Button(self.button_frame, text="Delete", command=self.delete_selected, bg=button_bg, fg=button_fg)
         self.delete_button.pack(side=tk.LEFT, padx=5)
     
-        self.theme_toggle_button = tk.Button(self.button_frame, text="Switch to Dark Theme", command=self.toggle_theme, bg=button_bg, fg=button_fg)
+        self.theme_toggle_button = tk.Button(self.button_frame, text="Switch Theme", command=self.toggle_theme, bg=button_bg, fg=button_fg)
         self.theme_toggle_button.pack(side=tk.LEFT, padx=5)
 
-        self.refresh_grid()  # Initial refresh to display the current clipboard history
-        
         # Apply the default system theme
         self.apply_theme()
+
+        self.refresh_grid()  # Initial refresh to display the current clipboard history
 
     def toggle_theme(self):
         """
@@ -128,7 +128,7 @@ class ClipboardApp:
         """
         # Get the current theme colors
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-
+        
         # Apply theme to the root window
         self.root.config(bg=bg_color)
 
@@ -277,52 +277,134 @@ class ClipboardApp:
         else:
             self.show_message("No item selected!", title="Error", error=True)
 
-    def edit_selected(self):
+    def toggle_editor_mode(self):
         """
-        Opens a new window for editing the text of the currently selected label.
+        Toggles between grid mode and editor mode.
+        """
+        if self.is_editor_mode:
+            # Switch back to grid mode
+            self.switch_to_grid_mode()
+        else:
+            # Switch to editor mode
+            self.switch_to_editor_mode()
+
+    def switch_to_editor_mode(self):
+        """
+        Switches the main window to editor mode.
         """
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-
-        if self.selected_label:
-            old_text = self.selected_label.full_text  # Get the full text from the label
-            edit_window = Toplevel(self.root)  # Create a new top-level window
-            edit_window.title("Edit Text")
-
-            edit_window.config(bg=bg_color)
-
-            # Create a text widget with specified dimensions for editing
-            text_area = Text(edit_window, width=60, height=20, bg=button_bg, fg=fg_color, insertbackground=fg_color)
-            text_area.pack(padx=10, pady=10)
-            text_area.insert(tk.END, old_text)  # Insert the old text into the text widget
-
-            # Create a save button to save changes
-            save_button = tk.Button(
-                edit_window,
-                text="Save",
-                command=lambda: self.save_edited_text(edit_window, text_area, old_text),
-                bg=button_bg,
-                fg=button_fg
-            )
-            save_button.pack(pady=10)
-
-            # Center the window
-            self.center_window(edit_window, 500, 400)
-        else:
+        if not self.selected_label:
             self.show_message("No item selected!", title="Error", error=True)
+            return
+
+        # Hide the grid frame
+        self.grid_frame.pack_forget()
+
+        # Create the editor frame
+        self.editor_frame = tk.Frame(self.root)
+        self.editor_frame.pack(fill=tk.BOTH, expand=True)
+        self.editor_frame.config(bg=bg_color)
+
+        # Get the selected note's text
+        old_text = self.selected_label.full_text
+
+        # Create a text widget for editing
+        self.text_area = tk.Text(self.editor_frame, width=60, height=20)
+        self.text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.text_area.config(bg=button_bg)
+        self.text_area.insert(tk.END, old_text)
+
+        # Create a frame for editor buttons
+        editor_button_frame = tk.Frame(self.editor_frame)
+        editor_button_frame.pack(side=tk.BOTTOM)
+        editor_button_frame.config(bg=bg_color)
+
+        # Create Save button
+        save_button = tk.Button(editor_button_frame, text="Save", command=self.save_edited_text)
+        save_button.pack(side=tk.LEFT, padx=5)
+        save_button.config(bg=button_bg)
+
+        # Create Cancel button
+        cancel_button = tk.Button(editor_button_frame, text="Cancel", command=self.switch_to_grid_mode)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+        cancel_button.config(bg=button_bg)
+
+        # Update the mode flag
+        self.is_editor_mode = True
+
+    def switch_to_grid_mode(self):
+        """
+        Switches the main window back to grid mode.
+        """
+        # Hide the editor frame
+        self.editor_frame.pack_forget()
+
+        # Show the grid frame
+        self.grid_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Update the mode flag
+        self.is_editor_mode = False
+
+    # def edit_selected(self):
+    #     """
+    #     Opens a new window for editing the text of the currently selected label.
+    #     """
+    #     bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
+
+    #     if self.selected_label:
+    #         old_text = self.selected_label.full_text  # Get the full text from the label
+    #         edit_window = Toplevel(self.root)  # Create a new top-level window
+    #         edit_window.title("Edit Text")
+
+    #         # Create a text widget with specified dimensions for editing
+    #         text_area = Text(edit_window, width=60, height=20, bg=button_bg, fg=fg_color)
+    #         text_area.pack(padx=10, pady=10)
+    #         text_area.insert(tk.END, old_text)  # Insert the old text into the text widget
+
+    #         # Create a save button to save changes
+    #         save_button = tk.Button(
+    #             edit_window,
+    #             text="Save",
+    #             command=lambda: self.save_edited_text(edit_window, text_area, old_text),
+    #             bg=button_bg,
+    #             fg=button_fg
+    #         )
+    #         save_button.pack(pady=10)
+
+    #         # Center the window
+    #         self.center_window(edit_window, 500, 400)
+    #     else:
+    #         self.show_message("No item selected!", title="Error", error=True)
 
 
-    def save_edited_text(self, window, text_area, old_text):
+    def save_edited_text(self):
         """
         Saves the edited text, updates history, and refreshes the grid.
         """
-        new_text = text_area.get("1.0", tk.END).strip()  # Get the new text from the text widget
+        new_text = self.text_area.get("1.0", tk.END).strip()
+
+
+        # if new_text:
+        #     # Update the clipboard history with the new text
+        #     self.clipboard_manager.clipboard_history[self.clipboard_manager.clipboard_history.index(old_text)] = new_text
+        #     self.clipboard_manager.save_history()  # Save updated history to file
+        #     self.refresh_grid()  # Refresh the grid to reflect changes
+        #     self.selected_label = None
+        #     window.destroy()  # Close the edit window
+
         if new_text:
             # Update the clipboard history with the new text
+            old_text = self.selected_label.full_text
             self.clipboard_manager.clipboard_history[self.clipboard_manager.clipboard_history.index(old_text)] = new_text
-            self.clipboard_manager.save_history()  # Save updated history to file
-            self.refresh_grid()  # Refresh the grid to reflect changes
-            self.selected_label = None
-            window.destroy()  # Close the edit window
+            self.clipboard_manager.save_history()
+
+            # Refresh the grid to reflect changes
+            self.refresh_grid()
+
+            # Switch back to grid mode
+            self.switch_to_grid_mode()
+
+
             self.show_message("Text edited successfully!", title="Success")
         else:
             self.show_message("Text cannot be empty!", title="Error", error=True)
