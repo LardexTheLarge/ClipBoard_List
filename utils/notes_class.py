@@ -26,11 +26,11 @@ class NoteTakerApp:
 
         # Ensure there's only ONE main frame with the correct theme
         self.main_frame = tk.Frame(root, bg=bg_color)
-        self.main_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        self.main_frame.pack(anchor=tk.CENTER, pady=10)
 
         # Buttons frame
         self.button_frame = tk.Frame(root, bg=bg_color)
-        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.button_frame.pack(anchor=tk.CENTER)
 
         self.add_button = tk.Button(self.button_frame, text="Add Note", command=self.add_note, bg=button_bg, fg=button_fg)
         self.add_button.pack(side=tk.LEFT, padx=5, pady=5)
@@ -123,12 +123,15 @@ class NoteTakerApp:
             content = self.get_note_content(title)
             self.note_text.insert("1.0", content)
 
+        button_frame = tk.Frame(self.main_frame, bg=bg_color)
+        button_frame.pack(anchor=tk.CENTER)
+
         # Add save button
-        save_button = tk.Button(self.main_frame, text="Save", command=lambda: self.save_note(is_new_note), bg=button_bg, fg=button_fg)
+        save_button = tk.Button(button_frame, text="Save", command=lambda: self.save_note(is_new_note), bg=button_bg, fg=button_fg)
         save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Add back button
-        back_button = tk.Button(self.main_frame, text="Back", command=self.show_grid_view, bg=button_bg, fg=button_fg)
+        back_button = tk.Button(button_frame, text="Back", command=self.show_grid_view, bg=button_bg, fg=button_fg)
         back_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     def add_note(self):
