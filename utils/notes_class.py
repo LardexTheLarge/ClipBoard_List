@@ -11,11 +11,11 @@ class NoteTakerApp:
         self.selected_label = None  # Track the currently selected note
         self.selected_note = None  # Track selected note title
         self.root.title("Note Taker")
-        load_dotenv()
+        # load_dotenv()
 
-        server_ip = os.getenv("SERVER_IP")
-        self.server_url = f"http://{server_ip}:5000"
-        self.server_available = self.check_server_availability()
+        # server_ip = os.getenv("SERVER_IP")
+        # self.server_url = f"http://{server_ip}:5000"
+        # self.server_available = self.check_server_availability()
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
@@ -51,13 +51,13 @@ class NoteTakerApp:
         self.show_grid_view()
 
 
-    def check_server_availability(self):
-        """Check if the server is reachable."""
-        try:
-            response = requests.get(f"{self.server_url}/ping", timeout=2)  # Ensure the backend has a `/ping` route
-            return response.status_code == 200
-        except requests.exceptions.RequestException:
-            return False  # If the server is unreachable, switch to offline mode
+    # def check_server_availability(self):
+    #     """Check if the server is reachable."""
+    #     try:
+    #         response = requests.get(f"{self.server_url}/ping", timeout=2)  # Ensure the backend has a `/ping` route
+    #         return response.status_code == 200
+    #     except requests.exceptions.RequestException:
+    #         return False  # If the server is unreachable, switch to offline mode
 
     def show_grid_view(self):
         """Display the grid view with note titles."""
@@ -139,34 +139,28 @@ class NoteTakerApp:
         self.show_detail_view("New Note", is_new_note=True)
 
     def get_notes(self):
-        """Fetch notes from server or local storage."""
-        if self.server_available:
-            try:
-                response = requests.get(f"{self.server_url}/notes")
-                if response.status_code == 200:
-                    return response.json()
-            except requests.exceptions.RequestException:
-                self.server_available = False  # Server is down, switch to offline mode
-
-        # Offline mode: Load local notes
-        return [f[:-4] for f in os.listdir("notes") if f.endswith(".txt")]
+        """Fetch notes locally from device storage."""
+        # Load local notes from device storage
+        try:
+            notes_dir = "notes"
+            if not os.path.exists(notes_dir):
+                os.makedirs(notes_dir)
+            return [f[:-4] for f in os.listdir(notes_dir) if f.endswith(".txt")]
+        except Exception as e:
+            print(f"Failed to load notes: {e}")
+            return []
 
     def get_note_content(self, title):
-        """Fetch note content from server or local storage."""
-        if self.server_available:
-            try:
-                response = requests.get(f"{self.server_url}/notes/{title}")
-                if response.status_code == 200:
-                    return response.json()["content"]
-            except requests.exceptions.RequestException:
-                self.server_available = False  # Server is down, switch to offline mode
-
-        # Offline mode: Load local note
+        """Fetch note content from local storage."""
         try:
             with open(f"notes/{title}.txt", "r") as file:
                 return file.read()
         except FileNotFoundError:
-            return "Note not found."
+            messagebox.showwarning("Warning", f"Note '{title}' not found locally.")
+            return ""
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load note content: {e}")
+            return ""
 
     def open_note(self, title=None):
         """Open a note in detail view."""
@@ -209,27 +203,16 @@ class NoteTakerApp:
             messagebox.showwarning("Warning", "Please enter a title for the note.")
             return
 
-        if self.server_available:
-            try:
-                response = requests.put(
-                    f"{self.server_url}/notes/{title}",
-                    json={"title": title, "content": content},
-                )
-                if response.status_code in [200, 201]:
-                    messagebox.showinfo("Success", "Note saved successfully!")
-                    self.show_grid_view()
-                    return
-            except requests.exceptions.RequestException:
-                self.server_available = False  # Server is down, switch to offline mode
-
-        # Save locally if server is unavailable
-        with open(f"notes/{title}.txt", "w") as file:
-            file.write(content)
-        messagebox.showinfo("Success", "Note saved locally!")
-        self.show_grid_view()
+        try:
+            with open(f"notes/{title}.txt", "w") as file:
+                file.write(content)
+            messagebox.showinfo("Success", "Note saved successfully!")
+            self.show_grid_view()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save note: {e}")
 
     def delete_note(self):
-        """Delete the selected note."""
+        """Delete the selected note locally."""
         selected_note = self.get_selected_note()
         if not selected_note:
             messagebox.showwarning("Warning", "Please select a note to delete.")
@@ -239,23 +222,14 @@ class NoteTakerApp:
         if not confirm:
             return
 
-        if self.server_available:
-            try:
-                response = requests.delete(f"{self.server_url}/notes/{selected_note}")
-                if response.status_code == 200:
-                    messagebox.showinfo("Success", f"Note '{selected_note}' deleted successfully!")
-                    self.show_grid_view()
-                    return
-            except requests.exceptions.RequestException:
-                self.server_available = False  # Server is down, switch to offline mode
-
-        # Delete locally if server is unavailable
         try:
             os.remove(f"notes/{selected_note}.txt")
             messagebox.showinfo("Success", f"Note '{selected_note}' deleted locally!")
             self.show_grid_view()
         except FileNotFoundError:
-            messagebox.showwarning("Warning", "Note not found locally.")
+            messagebox.showwarning("Warning", f"Note '{selected_note}' not found locally.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete note: {e}")
 
     def toggle_theme(self):
         """Toggles between light and dark themes and updates the UI."""
