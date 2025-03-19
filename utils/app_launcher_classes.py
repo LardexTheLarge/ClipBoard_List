@@ -3,6 +3,7 @@ from tkinter import ttk
 import threading
 from utils.clipboard_classes import ClipboardManager, ClipboardApp
 from utils.theme_manager_classes import ThemeManager
+from utils.message_popup import MessagePopup
 from utils.notes_class import NoteTakerApp
 
 
@@ -81,13 +82,13 @@ class AppLauncher:
         if app_name in self.apps:
             self.apps[app_name]()  # Call the launch function
         else:
-            self.show_message(f"App '{app_name}' not found!", error=True)
+            self.show_message(f"App '{app_name}' not found!", title="Error", error=True)
 
     def add_new_app(self):
         """
         Adds a new app through a dialog (to be implemented if required).
         """
-        self.show_message("Feature to add new apps dynamically is coming soon!", error=False)
+        self.show_message(f"Feature to add new apps dynamically is coming soon!", title="N/A")
 
     def launch_clipboard_app(self):
         """
@@ -114,9 +115,5 @@ class AppLauncher:
         # Add the new window to the list of open applications
         self.open_apps.append(new_window)
 
-    def show_message(self, message, error=False):
-        """
-        Displays a message to the user.
-        """
-        msg_type = "Error" if error else "Info"
-        tk.messagebox.showinfo(msg_type, message)
+    def show_message(self, message, title="Notification", error=False):
+        MessagePopup(self.root, message, title, error)

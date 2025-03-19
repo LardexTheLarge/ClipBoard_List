@@ -4,6 +4,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, Toplevel, Text, ttk
 from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager class
+from utils.message_popup import MessagePopup
 import json
 import os
 
@@ -217,40 +218,7 @@ class ClipboardApp:
             self.grid_frame.rowconfigure(row, weight=1)
 
     def show_message(self, message, title="Notification", error=False):
-        """
-        Displays a themed messagebox-style popup with the current theme applied.
-        """
-        bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-
-        # Create a Toplevel window
-        messagebox = Toplevel(self.root)
-        messagebox.title(title)
-
-        # Apply theme settings to the Toplevel window
-        messagebox.config(bg=bg_color)
-        messagebox.geometry("300x150")  # Customize size as needed
-        messagebox.resizable(False, False)
-
-        # Add a label for the message
-        label = tk.Label(messagebox, text=message, bg=bg_color, fg=fg_color, font=("Helvetica", 12), wraplength=280)
-        label.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
-
-        # Add a Close button
-        close_button = tk.Button(
-            messagebox,
-            text="OK",
-            command=messagebox.destroy,
-            bg=button_bg,
-            fg=button_fg
-        )
-        close_button.pack(pady=10)
-
-        # Center the popup on the screen
-        self.center_window(messagebox, 300, 150)
-
-        # Auto-close successful notifications after 2 seconds
-        if not error:
-            self.root.after(2000, messagebox.destroy)
+        MessagePopup(self.root, message, title, error)
 
 
     def select_label(self, label):
@@ -273,7 +241,7 @@ class ClipboardApp:
             self.clipboard_manager.clipboard_history.remove(item_to_delete)  # Remove item from history
             self.clipboard_manager.save_history()  # Save updated history to file
             self.refresh_grid()  # Refresh the grid to reflect changes
-            self.selected_label = None
+            self.selected_label = None  # Reset the selected label
         else:
             self.show_message("No item selected!", title="Error", error=True)
 
@@ -281,6 +249,10 @@ class ClipboardApp:
         """
         Toggles between grid mode and editor mode.
         """
+        if not self.selected_label:
+            self.show_message("No item selected!", title="Error", error=True)
+            return
+        
         if self.is_editor_mode:
             # Switch back to grid mode
             self.switch_to_grid_mode()
@@ -345,53 +317,15 @@ class ClipboardApp:
         # Update the mode flag
         self.is_editor_mode = False
 
-    # def edit_selected(self):
-    #     """
-    #     Opens a new window for editing the text of the currently selected label.
-    #     """
-    #     bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-
-    #     if self.selected_label:
-    #         old_text = self.selected_label.full_text  # Get the full text from the label
-    #         edit_window = Toplevel(self.root)  # Create a new top-level window
-    #         edit_window.title("Edit Text")
-
-    #         # Create a text widget with specified dimensions for editing
-    #         text_area = Text(edit_window, width=60, height=20, bg=button_bg, fg=fg_color)
-    #         text_area.pack(padx=10, pady=10)
-    #         text_area.insert(tk.END, old_text)  # Insert the old text into the text widget
-
-    #         # Create a save button to save changes
-    #         save_button = tk.Button(
-    #             edit_window,
-    #             text="Save",
-    #             command=lambda: self.save_edited_text(edit_window, text_area, old_text),
-    #             bg=button_bg,
-    #             fg=button_fg
-    #         )
-    #         save_button.pack(pady=10)
-
-    #         # Center the window
-    #         self.center_window(edit_window, 500, 400)
-    #     else:
-    #         self.show_message("No item selected!", title="Error", error=True)
-
-
     def save_edited_text(self):
         """
         Saves the edited text, updates history, and refreshes the grid.
         """
+        if not self.selected_label:
+            self.show_message("No item selected!", title="Error", error=True)
+            return
+        
         new_text = self.text_area.get("1.0", tk.END).strip()
-
-
-        # if new_text:
-        #     # Update the clipboard history with the new text
-        #     self.clipboard_manager.clipboard_history[self.clipboard_manager.clipboard_history.index(old_text)] = new_text
-        #     self.clipboard_manager.save_history()  # Save updated history to file
-        #     self.refresh_grid()  # Refresh the grid to reflect changes
-        #     self.selected_label = None
-        #     window.destroy()  # Close the edit window
-
         if new_text:
             # Update the clipboard history with the new text
             old_text = self.selected_label.full_text

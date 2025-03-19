@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import requests
 from dotenv import load_dotenv
+from utils.message_popup import MessagePopup
 from utils.theme_manager_classes import ThemeManager  # Import the ThemeManager class
 
 class NoteTakerApp:
@@ -11,11 +12,6 @@ class NoteTakerApp:
         self.selected_label = None  # Track the currently selected note
         self.selected_note = None  # Track selected note title
         self.root.title("Note Taker")
-        # load_dotenv()
-
-        # server_ip = os.getenv("SERVER_IP")
-        # self.server_url = f"http://{server_ip}:5000"
-        # self.server_available = self.check_server_availability()
 
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
@@ -49,15 +45,6 @@ class NoteTakerApp:
 
         # Initialize grid view
         self.show_grid_view()
-
-
-    # def check_server_availability(self):
-    #     """Check if the server is reachable."""
-    #     try:
-    #         response = requests.get(f"{self.server_url}/ping", timeout=2)  # Ensure the backend has a `/ping` route
-    #         return response.status_code == 200
-    #     except requests.exceptions.RequestException:
-    #         return False  # If the server is unreachable, switch to offline mode
 
     def show_grid_view(self):
         """Display the grid view with note titles."""
@@ -147,7 +134,7 @@ class NoteTakerApp:
                 os.makedirs(notes_dir)
             return [f[:-4] for f in os.listdir(notes_dir) if f.endswith(".txt")]
         except Exception as e:
-            print(f"Failed to load notes: {e}")
+            self.show_message(f"Failed to load notes: {e}", title="Error", error=True)
             return []
 
     def get_note_content(self, title):
@@ -156,10 +143,10 @@ class NoteTakerApp:
             with open(f"notes/{title}.txt", "r") as file:
                 return file.read()
         except FileNotFoundError:
-            messagebox.showwarning("Warning", f"Note '{title}' not found locally.")
+            self.show_message(f"Note '{title}' not found locally.", title="Error", error=True)
             return ""
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load note content: {e}")
+            self.show_message(f"Failed to load note content: {e}", title="Error", error=True)
             return ""
 
     def open_note(self, title=None):
@@ -167,7 +154,7 @@ class NoteTakerApp:
         if not title:
             selected_note = self.get_selected_note()
             if not selected_note:
-                messagebox.showwarning("Warning", "Please select a note to open.")
+                self.show_message(f"Please select a note to open.", title="Error", error=True)
                 return
             title = selected_note
 
@@ -200,22 +187,22 @@ class NoteTakerApp:
         content = self.note_text.get("1.0", tk.END).strip()
 
         if not title:
-            messagebox.showwarning("Warning", "Please enter a title for the note.")
+            self.show_message(f"Please enter a title for the note.", title="Error", error=True)
             return
 
         try:
             with open(f"notes/{title}.txt", "w") as file:
                 file.write(content)
-            messagebox.showinfo("Success", "Note saved successfully!")
+            self.show_message(f"Note saved successfully!", title="Success", error=False)
             self.show_grid_view()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save note: {e}")
+            self.show_message(f"Failed to save note: {e}", title="Error", error=True)
 
     def delete_note(self):
         """Delete the selected note locally."""
         selected_note = self.get_selected_note()
         if not selected_note:
-            messagebox.showwarning("Warning", "Please select a note to delete.")
+            self.show_message(f"Please select a note to delete.", title="Error", error=True)
             return
 
         confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete '{selected_note}'?")
@@ -224,12 +211,12 @@ class NoteTakerApp:
 
         try:
             os.remove(f"notes/{selected_note}.txt")
-            messagebox.showinfo("Success", f"Note '{selected_note}' deleted locally!")
+            self.show_message(f"Note '{selected_note}' deleted locally!", title="Error", error=True)
             self.show_grid_view()
         except FileNotFoundError:
-            messagebox.showwarning("Warning", f"Note '{selected_note}' not found locally.")
+            self.show_message(f"Note '{selected_note}' not found locally.", title="Error", error=True)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to delete note: {e}")
+            self.show_message(f"Failed to delete note: {e}", title="Error", error=True)
 
     def toggle_theme(self):
         """Toggles between light and dark themes and updates the UI."""
@@ -243,3 +230,6 @@ class NoteTakerApp:
 
         # Also update the button_frame (if needed)
         self.button_frame.config(bg=bg_color)
+
+    def show_message(self, message, title="Notification", error=False):
+        MessagePopup(self.root, message, title, error)
