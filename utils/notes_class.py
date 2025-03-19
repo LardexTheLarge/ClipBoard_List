@@ -210,7 +210,7 @@ class NoteTakerApp:
         if confirm:
             try:
                 os.remove(f"notes/{selected_note}.txt")
-                self.show_message(f"Note '{selected_note}' deleted locally!", title="Error", error=True)
+                self.show_message(f"Note '{selected_note}' deleted locally!", title="Success")
                 self.show_grid_view()
             except FileNotFoundError:
                 self.show_message(f"Note '{selected_note}' not found locally.", title="Error", error=True)

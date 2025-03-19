@@ -23,19 +23,21 @@ class MessagePopup:
         close_button.pack(pady=10)
 
         # Center the window
-        self.center_window(300, 150)
+        MessagePopup.center_window(self.popup, 300, 150)
 
         # Auto-close for non-error messages after 2 seconds
         if not error:
             parent.after(2000, self.popup.destroy)
 
-    def center_window(self, width, height):
-        screen_width = self.popup.winfo_screenwidth()
-        screen_height = self.popup.winfo_screenheight()
+    @staticmethod
+    def center_window(window, width, height):
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
-        self.popup.geometry(f"{width}x{height}+{x}+{y}")
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
+    @staticmethod
     def ask_yes_no(parent, title, message):
         result = None
         popup = Toplevel(parent)
@@ -69,12 +71,8 @@ class MessagePopup:
         no_button = Button(button_frame, text="No", command=on_no, bg=button_bg, fg=button_fg, width=10)
         no_button.pack(side=tk.RIGHT, padx=5)
 
-        # Center window
-        screen_width = popup.winfo_screenwidth()
-        screen_height = popup.winfo_screenheight()
-        x = (screen_width // 2) - (300 // 2)
-        y = (screen_height // 2) - (150 // 2)
-        popup.geometry(f"300x150+{x}+{y}")
+        # Center the window
+        MessagePopup.center_window(popup, 300, 150)
 
         popup.wait_window()  # Pause execution until the popup is closed
         return result
