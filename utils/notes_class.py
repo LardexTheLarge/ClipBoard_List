@@ -205,18 +205,17 @@ class NoteTakerApp:
             self.show_message(f"Please select a note to delete.", title="Error", error=True)
             return
 
-        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete '{selected_note}'?")
-        if not confirm:
-            return
-
-        try:
-            os.remove(f"notes/{selected_note}.txt")
-            self.show_message(f"Note '{selected_note}' deleted locally!", title="Error", error=True)
-            self.show_grid_view()
-        except FileNotFoundError:
-            self.show_message(f"Note '{selected_note}' not found locally.", title="Error", error=True)
-        except Exception as e:
-            self.show_message(f"Failed to delete note: {e}", title="Error", error=True)
+        # Confirmation dialog using MessagePopup
+        confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", f"Are you sure you want to delete '{selected_note}'?")
+        if confirm:
+            try:
+                os.remove(f"notes/{selected_note}.txt")
+                self.show_message(f"Note '{selected_note}' deleted locally!", title="Error", error=True)
+                self.show_grid_view()
+            except FileNotFoundError:
+                self.show_message(f"Note '{selected_note}' not found locally.", title="Error", error=True)
+            except Exception as e:
+                self.show_message(f"Failed to delete note: {e}", title="Error", error=True)
 
     def toggle_theme(self):
         """Toggles between light and dark themes and updates the UI."""

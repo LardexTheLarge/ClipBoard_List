@@ -36,3 +36,46 @@ class MessagePopup:
         y = (screen_height // 2) - (height // 2)
         self.popup.geometry(f"{width}x{height}+{x}+{y}")
 
+    def ask_yes_no(parent, title, message):
+        result = None
+        popup = Toplevel(parent)
+        theme_manager = ThemeManager()
+        bg_color, fg_color, button_bg, button_fg = theme_manager.get_theme_colors(theme_manager.current_theme)
+
+        popup.title(title)
+        popup.config(bg=bg_color)
+        popup.geometry("300x150")
+        popup.resizable(False, False)
+
+        label = Label(popup, text=message, bg=bg_color, fg=fg_color, font=("Helvetica", 12), wraplength=280)
+        label.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+
+        button_frame = tk.Frame(popup, bg=bg_color)
+        button_frame.pack(pady=5)
+
+        def on_yes():
+            nonlocal result
+            result = True
+            popup.destroy()
+
+        def on_no():
+            nonlocal result
+            result = False
+            popup.destroy()
+
+        yes_button = Button(button_frame, text="Yes", command=on_yes, bg=button_bg, fg=button_fg, width=10)
+        yes_button.pack(side=tk.LEFT, padx=5)
+
+        no_button = Button(button_frame, text="No", command=on_no, bg=button_bg, fg=button_fg, width=10)
+        no_button.pack(side=tk.RIGHT, padx=5)
+
+        # Center window
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        x = (screen_width // 2) - (300 // 2)
+        y = (screen_height // 2) - (150 // 2)
+        popup.geometry(f"300x150+{x}+{y}")
+
+        popup.wait_window()  # Pause execution until the popup is closed
+        return result
+
