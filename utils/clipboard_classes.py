@@ -237,13 +237,21 @@ class ClipboardApp:
         Deletes the currently selected label's text from history and refreshes the grid.
         """
         if self.selected_label:
-            item_to_delete = self.selected_label.full_text  # Get the full text from the label
-            self.clipboard_manager.clipboard_history.remove(item_to_delete)  # Remove item from history
-            self.clipboard_manager.save_history()  # Save updated history to file
-            self.refresh_grid()  # Refresh the grid to reflect changes
-            self.selected_label = None  # Reset the selected label
-        else:
-            self.show_message("No item selected!", title="Error", error=True)
+            if self.is_editor_mode:
+                item_to_delete = self.selected_label.full_text  # Get the full text from the label
+                # Confirmation dialog using MessagePopup
+                confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", "Are you sure you want to delete item?")
+                if confirm:
+                    self.clipboard_manager.clipboard_history.remove(item_to_delete)  # Remove item from history
+                    self.clipboard_manager.save_history()  # Save updated history to file
+                    self.refresh_grid()  # Refresh the grid to reflect changes
+                    self.selected_label = None  # Reset the selected label
+                    self.show_message("Item Deleted", title="Success")
+                    self.switch_to_grid_mode()
+                else:
+                    self.show_message("Deletion Canceled", title="Success")
+            else:
+                self.show_message("No item selected!", title="Error", error=True)
 
     def toggle_editor_mode(self):
         """
