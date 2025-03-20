@@ -95,10 +95,6 @@ class ClipboardApp:
         self.button_frame = tk.Frame(root, bg=bg_color)
         self.button_frame.pack(side=tk.BOTTOM, pady=10, anchor=tk.CENTER)
 
-        # Create and pack buttons for refresh, edit, and delete actions
-        self.refresh_button = tk.Button(self.button_frame, text="Refresh", command=self.refresh_grid, bg=button_bg, fg=button_fg)
-        self.refresh_button.pack(side=tk.LEFT, padx=5)
-
         self.edit_button = tk.Button(self.button_frame, text="Edit", command=self.toggle_editor_mode, bg=button_bg, fg=button_fg)
         self.edit_button.pack(side=tk.LEFT, padx=5)
 
@@ -176,13 +172,19 @@ class ClipboardApp:
         """
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
+        # Clear existing widgets
         for widget in self.grid_frame.winfo_children():
-            widget.destroy()  # Clear existing widgets
-        
+            widget.destroy()
+
+        # Get the current clipboard history
         clipboard_history = self.clipboard_manager.get_history()
         num_columns = 3  # Number of columns in the grid
         fixed_width = 30  # Fixed width for labels
         max_length = 20  # Maximum length for truncation
+
+        # Clear the selected_labels list
+        if hasattr(self, 'selected_labels'):
+            self.selected_labels = []
 
         for index, item in enumerate(clipboard_history):
             row = index // num_columns
@@ -223,42 +225,71 @@ class ClipboardApp:
 
     def select_label(self, label):
         """
-        Highlights the selected label and deselects any previously selected label.
+        Toggles the selection of a label. If the label is already selected, it will be deselected.
         """
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-        if self.selected_label:
-            if self.selected_label.winfo_exists():
-                self.selected_label.config(bg=button_bg)
-        self.selected_label = label
-        label.config(bg="lightblue")
+
+        # Initialize the selected_labels list if it doesn't exist
+        if not hasattr(self, 'selected_labels'):
+            self.selected_labels = []
+
+        # Toggle selection
+        if label in self.selected_labels:
+            # Deselect the label
+            label.config(bg=button_bg)  # Reset to default background color
+            self.selected_labels.remove(label)
+        else:
+            # Select the label
+            label.config(bg="lightblue")  # Highlight the selected label
+            self.selected_labels.append(label)
 
     def delete_selected(self):
         """
-        Deletes the currently selected label's text from history and refreshes the grid.
+        Deletes all selected labels' text from history and refreshes the grid.
         """
-        if self.selected_label:
-            if self.is_editor_mode:
-                item_to_delete = self.selected_label.full_text  # Get the full text from the label
-                # Confirmation dialog using MessagePopup
-                confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", "Are you sure you want to delete item?")
-                if confirm:
-                    self.clipboard_manager.clipboard_history.remove(item_to_delete)  # Remove item from history
-                    self.clipboard_manager.save_history()  # Save updated history to file
-                    self.refresh_grid()  # Refresh the grid to reflect changes
-                    self.selected_label = None  # Reset the selected label
-                    self.show_message("Item Deleted", title="Success")
-                    self.switch_to_grid_mode()
-                else:
-                    self.show_message("Deletion Canceled", title="Success")
+        if hasattr(self, 'selected_labels') and self.selected_labels:
+            # Get the full text of all selected labels
+            items_to_delete = [label.full_text for label in self.selected_labels]
+
+            # Confirmation dialog using MessagePopup
+            confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", "Are you sure you want to delete?")
+
+            if confirm:
+                # Remove all selected items from history
+                for item in items_to_delete:
+                    if item in self.clipboard_manager.clipboard_history:
+                        self.clipboard_manager.clipboard_history.remove(item)
+
+                # Save the updated history to file
+                self.clipboard_manager.save_history()
+
+                # Refresh the grid to reflect changes
+                self.refresh_grid()
+
+                # Clear the selected labels list
+                self.selected_labels = []
+
+                # Show a success message
+                self.show_message("Item(s) deleted successfully!", title="Success")
             else:
-                self.show_message("No item selected!", title="Error", error=True)
+                # Show a cancellation message
+                self.show_message("Deletion canceled.", title="Info")
+        else:
+            # Show an error message if no items are selected
+            self.show_message("No items selected!", title="Error", error=True)
 
     def toggle_editor_mode(self):
         """
         Toggles between grid mode and editor mode.
         """
-        if not self.selected_label:
+        # Check if any labels are selected
+        if not hasattr(self, 'selected_labels') or not self.selected_labels:
             self.show_message("No item selected!", title="Error", error=True)
+            return
+
+        # Ensure only one label is selected for editor mode
+        if len(self.selected_labels) > 1:
+            self.show_message("Please select only one item to edit!", title="Error", error=True)
             return
         
         if self.is_editor_mode:
@@ -273,9 +304,14 @@ class ClipboardApp:
         Switches the main window to editor mode.
         """
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
-        if not self.selected_label:
-            self.show_message("No item selected!", title="Error", error=True)
+
+        # Ensure only one label is selected
+        if not hasattr(self, 'selected_labels') or len(self.selected_labels) != 1:
+            self.show_message("Please select only one item to edit!", title="Error", error=True)
             return
+        
+        # Get the selected label
+        selected_label = self.selected_labels[0]
 
         # Hide the grid frame
         self.grid_frame.pack_forget()
@@ -286,7 +322,7 @@ class ClipboardApp:
         self.editor_frame.config(bg=bg_color)
 
         # Get the selected note's text
-        old_text = self.selected_label.full_text
+        old_text = selected_label.full_text
 
         # Create a text widget for editing
         self.text_area = tk.Text(self.editor_frame, width=60, height=20)
@@ -329,26 +365,39 @@ class ClipboardApp:
         """
         Saves the edited text, updates history, and refreshes the grid.
         """
-        if not self.selected_label:
+        if not hasattr(self, 'selected_labels') or not self.selected_labels:
             self.show_message("No item selected!", title="Error", error=True)
             return
-        
+
+        # Ensure only one label is selected for editing
+        if len(self.selected_labels) != 1:
+            self.show_message("Please select only one item to edit!", title="Error", error=True)
+            return
+
+        # Get the selected label
+        selected_label = self.selected_labels[0]
+
+        # Get the new text from the text area
         new_text = self.text_area.get("1.0", tk.END).strip()
         if new_text:
             # Update the clipboard history with the new text
-            old_text = self.selected_label.full_text
+            old_text = selected_label.full_text
             self.clipboard_manager.clipboard_history[self.clipboard_manager.clipboard_history.index(old_text)] = new_text
             self.clipboard_manager.save_history()
 
             # Refresh the grid to reflect changes
             self.refresh_grid()
 
+            # Clear the selected labels list
+            self.selected_labels = []
+
             # Switch back to grid mode
             self.switch_to_grid_mode()
 
-
+            # Show a success message
             self.show_message("Text edited successfully!", title="Success")
         else:
+            # Show an error message if the text is empty
             self.show_message("Text cannot be empty!", title="Error", error=True)
 
     def copy_text(self, text):
