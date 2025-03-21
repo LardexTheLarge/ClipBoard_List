@@ -84,6 +84,9 @@ class ClipboardApp:
         self.theme_manager = ThemeManager()  # Initialize the theme manager
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
+        # Set minimum window size
+        self.root.minsize(800, 600)
+
         self.selected_label = None  # To keep track of the currently selected label
         self.is_editor_mode = False  # Track whether the app is in editor mode
 

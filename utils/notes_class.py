@@ -13,6 +13,9 @@ class NoteTakerApp:
         self.selected_note = None  # Track selected note title
         self.root.title("Note Taker")
 
+        # Set minimum window size
+        self.root.minsize(800, 600)
+
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
@@ -22,7 +25,7 @@ class NoteTakerApp:
 
         # Ensure there's only ONE main frame with the correct theme
         self.main_frame = tk.Frame(root)
-        self.main_frame.pack(fill=tk.Y)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Buttons frame
         self.button_frame = tk.Frame(root, bg=bg_color)
@@ -60,6 +63,10 @@ class NoteTakerApp:
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
+        # Create a center frame to hold the labels
+        center_frame = tk.Frame(self.main_frame, bg=bg_color)
+        center_frame.pack(anchor=tk.N, expand=True)  # Center the frame within the main_frame
+
         # Fetch notes
         notes = self.get_notes()
 
@@ -69,7 +76,7 @@ class NoteTakerApp:
             col = i % 3
 
             note_label = tk.Label(
-                self.main_frame,
+                center_frame,
                 text=note_title,
                 width=20,
                 height=6,
@@ -103,7 +110,7 @@ class NoteTakerApp:
 
         # Display title
         self.title_entry = tk.Entry(self.main_frame, font=("Arial", 16), bg=button_bg, fg=fg_color)
-        self.title_entry.pack(pady=10)
+        self.title_entry.pack(pady=10, fill=tk.X, padx=10)
         self.title_entry.insert(0, title if not is_new_note else "")
 
         # Display content
@@ -114,7 +121,7 @@ class NoteTakerApp:
             self.note_text.insert("1.0", content)
 
         button_frame = tk.Frame(self.main_frame, bg=bg_color)
-        button_frame.pack(anchor=tk.S)
+        button_frame.pack(side=tk.BOTTOM)
 
         # Add save button
         save_button = tk.Button(button_frame, text="Save", command=lambda: self.save_note(is_new_note), bg=button_bg, fg=button_fg)
