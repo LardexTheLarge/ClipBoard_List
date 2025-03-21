@@ -89,7 +89,7 @@ class ClipboardApp:
 
         # Create and pack the frame that will hold the grid of clipboard items
         self.grid_frame = tk.Frame(root)
-        self.grid_frame.pack(fill=tk.BOTH, expand=True)
+        self.grid_frame.pack()
 
         # Create a frame to hold the buttons horizontally
         self.button_frame = tk.Frame(root, bg=bg_color)
@@ -155,16 +155,6 @@ class ClipboardApp:
         """
         lines = (len(text) // max_length) + 1
         return lines * 2  # Adjust multiplier as needed to fit text properly
-    
-    def center_window(self, window, width, height):
-        """
-        Centers a window on the screen.
-        """
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        x = (screen_width // 2) - (width // 2)
-        y = (screen_height // 2) - (height // 2)
-        window.geometry(f"{width}x{height}+{x}+{y}")
 
     def refresh_grid(self):
         """
@@ -251,26 +241,28 @@ class ClipboardApp:
             # Get the full text of all selected labels
             items_to_delete = [label.full_text for label in self.selected_labels]
 
-            # Confirmation dialog using MessagePopup
-            confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", "Are you sure you want to delete?")
+            if self.is_editor_mode:
+                # Confirmation dialog using MessagePopup
+                confirm = MessagePopup.ask_yes_no(self.root, "Confirm Delete", "Are you sure you want to delete?")
 
-            if confirm:
-                # Remove all selected items from history
-                for item in items_to_delete:
-                    if item in self.clipboard_manager.clipboard_history:
-                        self.clipboard_manager.clipboard_history.remove(item)
+                if confirm:
+                    # Remove all selected items from history
+                    for item in items_to_delete:
+                        if item in self.clipboard_manager.clipboard_history:
+                            self.clipboard_manager.clipboard_history.remove(item)
 
-                # Save the updated history to file
-                self.clipboard_manager.save_history()
+                    # Save the updated history to file
+                    self.clipboard_manager.save_history()
 
-                # Refresh the grid to reflect changes
-                self.refresh_grid()
+                    # Refresh the grid to reflect changes
+                    self.refresh_grid()
 
-                # Clear the selected labels list
-                self.selected_labels = []
+                    # Clear the selected labels list
+                    self.selected_labels = []
 
-                # Show a success message
-                self.show_message("Item(s) deleted successfully!", title="Success")
+                    # Show a success message
+                    self.show_message("Item(s) deleted successfully!", title="Success")
+                    self.switch_to_grid_mode()
             else:
                 # Show a cancellation message
                 self.show_message("Deletion canceled.", title="Info")

@@ -21,12 +21,12 @@ class NoteTakerApp:
         self.root.config(bg=bg_color)
 
         # Ensure there's only ONE main frame with the correct theme
-        self.main_frame = tk.Frame(root, bg=bg_color)
-        self.main_frame.pack(anchor=tk.CENTER, pady=10)
+        self.main_frame = tk.Frame(root)
+        self.main_frame.pack(fill=tk.Y)
 
         # Buttons frame
         self.button_frame = tk.Frame(root, bg=bg_color)
-        self.button_frame.pack(anchor=tk.CENTER)
+        self.button_frame.pack(side=tk.BOTTOM, pady=10, anchor=tk.CENTER)
 
         self.add_button = tk.Button(self.button_frame, text="Add Note", command=self.add_note, bg=button_bg, fg=button_fg)
         self.add_button.pack(side=tk.LEFT, padx=5, pady=5)
@@ -47,7 +47,9 @@ class NoteTakerApp:
         self.show_grid_view()
 
     def show_grid_view(self):
-        """Display the grid view with note titles."""
+        """
+        Display the grid view with note titles.
+        """
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
         # Set correct background color
@@ -74,8 +76,9 @@ class NoteTakerApp:
                 relief="solid",
                 borderwidth=1,
                 cursor="hand2",
-                bg=button_bg,  # Apply theme background
-                fg=button_fg   # Apply theme text color
+                wraplength=250,
+                bg=button_bg,
+                fg=button_fg
             )
             note_label.grid(row=row, column=col, padx=5, pady=5)
 
@@ -111,7 +114,7 @@ class NoteTakerApp:
             self.note_text.insert("1.0", content)
 
         button_frame = tk.Frame(self.main_frame, bg=bg_color)
-        button_frame.pack(anchor=tk.CENTER)
+        button_frame.pack(anchor=tk.S)
 
         # Add save button
         save_button = tk.Button(button_frame, text="Save", command=lambda: self.save_note(is_new_note), bg=button_bg, fg=button_fg)
