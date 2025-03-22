@@ -67,7 +67,7 @@ class ThemeManager:
 
             # Apply styling to menu widgets
             if isinstance(child, tk.Menu):
-                child.config(bg=bg_color, fg=fg_color)
+                child.config(bg=button_bg, fg=fg_color)
 
             # Apply button-specific colors
             if isinstance(child, (tk.Label, tk.Button)):
