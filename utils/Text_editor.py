@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, font
 from tkinter.scrolledtext import ScrolledText
 from utils.theme_manager_classes import ThemeManager  # Integrate with existing theme system
+<<<<<<< HEAD
 from utils.message_popup import MessagePopup
 
 class TextEditorApp:
@@ -75,3 +76,6 @@ class TextEditorApp:
     def save_file_as(self):
         """Saves the content to a new file."""
         self.save_file()
+=======
+from utils.message_popup import MessagePopup
+>>>>>>> 93fca025ed71d22650b0d3d7dbb7d3909a7ba10d
