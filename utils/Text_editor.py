@@ -71,6 +71,9 @@ class TextEditorApp:
         
         # Add the font submenu to the text menu
         text_menu.add_cascade(label="Change Font", menu=font_submenu)
+
+        # Add "Change Selected Text Font" option
+        text_menu.add_command(label="Change Selected Text Font", command=self.change_selected_text_font)
         
         menu_bar.add_cascade(label="Text", menu=text_menu)
 
@@ -119,3 +122,60 @@ class TextEditorApp:
     def apply_current_font(self, font_tag):
         """Apply the selected font tag to new text only."""
         self.text_area.tag_add(font_tag, "insert-1c", "insert")
+
+    def change_selected_text_font(self):
+        """Change the font of the currently selected text."""
+        try:
+            # Get the currently selected text
+            sel_start = self.text_area.index(tk.SEL_FIRST)
+            sel_end = self.text_area.index(tk.SEL_LAST)
+            
+            # Ask user to select a font
+            selected_font = self.ask_font()
+            if selected_font:
+                # Create a unique tag for this font change
+                font_tag = f"font_{selected_font[0]}_{selected_font[1]}"
+                self.text_area.tag_configure(font_tag, font=selected_font)
+                
+                # Apply the tag to the selected text
+                self.text_area.tag_add(font_tag, sel_start, sel_end)
+                
+        except tk.TclError:
+            # No text selected
+            messagebox.showwarning("No Selection", "Please select some text first")
+
+    def ask_font(self):
+        """Open a dialog to select font and size."""
+        # Create a simple font selection dialog
+        font_dialog = tk.Toplevel(self.root)
+        font_dialog.title("Select Font")
+        
+        # Font family selection
+        tk.Label(font_dialog, text="Font:").grid(row=0, column=0, padx=5, pady=5)
+        font_family = tk.StringVar(value="Arial")
+        font_list = tk.Listbox(font_dialog, height=5, exportselection=0)
+        for f in ["Arial", "Times New Roman", "Courier New", "Verdana", "Comic Sans MS"]:
+            font_list.insert(tk.END, f)
+        font_list.grid(row=0, column=1, padx=5, pady=5)
+        font_list.selection_set(0)
+        
+        # Font size selection
+        tk.Label(font_dialog, text="Size:").grid(row=1, column=0, padx=5, pady=5)
+        font_size = tk.IntVar(value=12)
+        size_entry = tk.Entry(font_dialog, textvariable=font_size)
+        size_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        # OK button
+        selected_font = []
+        def on_ok():
+            selected_font.append((font_list.get(font_list.curselection()), font_size.get()))
+            font_dialog.destroy()
+            
+        tk.Button(font_dialog, text="OK", command=on_ok).grid(row=2, column=1, pady=10)
+        
+        # Make the dialog modal
+        font_dialog.transient(self.root)
+        font_dialog.grab_set()
+        self.root.wait_window(font_dialog)
+        
+        return selected_font[0] if selected_font else None
