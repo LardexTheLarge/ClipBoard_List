@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, font
 from tkinter.scrolledtext import ScrolledText
-from utils.theme_manager_classes import ThemeManager  # Integrate with existing theme system
-<<<<<<< HEAD
+from utils.theme_manager_classes import ThemeManager
 from utils.message_popup import MessagePopup
 
 class TextEditorApp:
@@ -17,8 +16,18 @@ class TextEditorApp:
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
         # Text area with scrollbars
-        self.text_area = ScrolledText(root, wrap="word", undo=True, bg=bg_color, fg=fg_color, font=("Arial", 12))
+        self.text_area = ScrolledText(root, wrap="word", undo=True, bg=bg_color, fg=fg_color)
         self.text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Track the current font for new text
+        self.current_font = ("Arial", 12)
+        self.text_area.configure(font=self.current_font)
+
+        # Create a tag for the current font
+        self.text_area.tag_configure("current_font", font=self.current_font)
+
+        # Bind key press to apply the current font to new text
+        self.text_area.bind("<KeyPress>", self.apply_current_font)
 
         # Create menu bar
         self.create_menu()
@@ -51,6 +60,20 @@ class TextEditorApp:
         edit_menu.add_command(label="Select All", command=lambda: self.text_area.event_generate("<<SelectAll>>"))
         menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
+        # Text menu
+        text_menu = tk.Menu(menu_bar, tearoff=0)
+        
+        # Font submenu
+        font_submenu = tk.Menu(text_menu, tearoff=0)
+        font_choices = ["Arial", "Times New Roman", "Courier New", "Verdana", "Comic Sans MS"]
+        for font_choice in font_choices:
+            font_submenu.add_command(label=font_choice, command=lambda f=font_choice: self.change_font(f))
+        
+        # Add the font submenu to the text menu
+        text_menu.add_cascade(label="Change Font", menu=font_submenu)
+        
+        menu_bar.add_cascade(label="Text", menu=text_menu)
+
         self.root.config(menu=menu_bar)
 
     def new_file(self):
@@ -64,6 +87,8 @@ class TextEditorApp:
             with open(file_path, "r") as file:
                 self.text_area.delete(1.0, tk.END)
                 self.text_area.insert(tk.END, file.read())
+                # Apply current font to all new text after loading
+                self.text_area.tag_add("current_font", "1.0", "end")
 
     def save_file(self):
         """Saves the current content to a file."""
@@ -76,6 +101,21 @@ class TextEditorApp:
     def save_file_as(self):
         """Saves the content to a new file."""
         self.save_file()
-=======
-from utils.message_popup import MessagePopup
->>>>>>> 93fca025ed71d22650b0d3d7dbb7d3909a7ba10d
+
+    def change_font(self, font_name):
+        """Change the font for new text only."""
+        current_font_size = font.Font(font=self.text_area['font']).actual()['size']
+        self.current_font = (font_name, current_font_size)
+
+        # Generate a unique tag for the new font
+        font_tag = f"font_{font_name}_{current_font_size}"
+        
+        # Define the tag with the selected font
+        self.text_area.tag_configure(font_tag, font=self.current_font)
+
+        # Apply this tag to all new text
+        self.text_area.bind("<Key>", lambda event: self.apply_current_font(font_tag))
+
+    def apply_current_font(self, font_tag):
+        """Apply the selected font tag to new text only."""
+        self.text_area.tag_add(font_tag, "insert-1c", "insert")
