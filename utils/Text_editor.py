@@ -27,7 +27,7 @@ class TextEditorApp:
         self.text_area.tag_configure("current_font", font=self.current_font)
 
         # Bind key press to apply the current font to new text
-        self.text_area.bind("<KeyPress>", self.apply_current_font)
+        self.text_area.bind("<KeyPress>", lambda event: self.apply_current_font("current_font"))
 
         # Create menu bar
         self.create_menu()
@@ -88,21 +88,120 @@ class TextEditorApp:
 
     def open_file(self):
         """Opens a text file and loads it into the text area."""
-        file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
-        if file_path:
-            with open(file_path, "r") as file:
-                self.text_area.delete(1.0, tk.END)
-                self.text_area.insert(tk.END, file.read())
-                # Apply current font to all new text after loading
+        file_path = filedialog.askopenfilename(
+            filetypes=[("Text Data Files", "*.tdat"), ("Text Files", "*.txt"), ("All Files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        self.text_area.delete(1.0, tk.END)
+
+        if file_path.endswith('.tdat'):
+            # Load JSON data and apply tags
+            import json
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                    text_content = data.get('text', '')
+                    tags_data = data.get('tags', [])
+
+                    self.text_area.insert(tk.END, text_content)
+
+                    for tag_info in tags_data:
+                        tag_name = tag_info['name']
+                        font_family = tag_info['font_family']
+                        font_size = tag_info['font_size']
+                        ranges = tag_info['ranges']
+
+                        # Configure the tag
+                        self.text_area.tag_configure(tag_name, font=(font_family, font_size))
+
+                        # Apply ranges
+                        for start, end in ranges:
+                            self.text_area.tag_add(tag_name, start, end)
+
+                    # Update current_font if loaded
+                    if 'current_font' in self.text_area.tag_names():
+                        font_str = self.text_area.tag_cget('current_font', 'font')
+                        parts = font_str.split()
+                        if len(parts) >= 2:
+                            try:
+                                self.current_font = (' '.join(parts[:-1]), int(parts[-1]))
+                            except ValueError:
+                                pass
+
+            except Exception as e:
+                self.show_message(f"Error loading file: {str(e)}", title="Error", error=True)
+        else:
+            # Load plain text and apply current font
+            with open(file_path, 'r') as f:
+                self.text_area.insert(tk.END, f.read())
                 self.text_area.tag_add("current_font", "1.0", "end")
 
     def save_file(self):
         """Saves the current content to a file."""
-        file_path = filedialog.asksaveasfilename(defaultextension=".txt",
-                                                filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
-        if file_path:
-            with open(file_path, "w") as file:
-                file.write(self.text_area.get(1.0, tk.END))
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".tdat",
+            filetypes=[("Text Data Files", "*.tdat"), ("Text Files", "*.txt"), ("All Files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        text_content = self.text_area.get("1.0", tk.END).rstrip('\n')  # Remove trailing newline added by tk.END
+
+        if file_path.endswith('.tdat'):
+            # Save as JSON with font tags
+            tags_data = []
+            for tag_name in self.text_area.tag_names():
+                if tag_name.startswith('font_') or tag_name == 'current_font':
+                    font_family, font_size = None, None
+                    if tag_name == 'current_font':
+                        # Extract font from tag configuration
+                        font_str = self.text_area.tag_cget(tag_name, 'font')
+                        parts = font_str.split()
+                        if len(parts) < 1:
+                            continue
+                        try:
+                            font_size = int(parts[-1])
+                            font_family = ' '.join(parts[:-1])
+                        except ValueError:
+                            continue
+                    else:
+                        # Extract font from tag name
+                        parts = tag_name.split('_')
+                        font_family = ' '.join(parts[1:-1])
+                        try:
+                            font_size = int(parts[-1])
+                        except ValueError:
+                            continue
+
+                    # Collect ranges for the tag
+                    ranges = self.text_area.tag_ranges(tag_name)
+                    range_pairs = []
+                    for i in range(0, len(ranges), 2):
+                        start = str(ranges[i])
+                        end = str(ranges[i+1])
+                        range_pairs.append([start, end])
+
+                    tags_data.append({
+                        'name': tag_name,
+                        'font_family': font_family,
+                        'font_size': font_size,
+                        'ranges': range_pairs
+                    })
+
+            data = {
+                'text': text_content,
+                'tags': tags_data
+            }
+
+            import json
+            with open(file_path, 'w') as f:
+                json.dump(data, f, indent=4)
+        else:
+            # Save as plain text
+            with open(file_path, 'w') as f:
+                f.write(text_content)
 
     def save_file_as(self):
         """Saves the content to a new file."""
