@@ -35,6 +35,9 @@ class TextEditorApp:
         # Apply theme
         self.theme_manager.apply_theme(root, self.theme_manager.current_theme)
 
+    def show_message(self, message, title="Notification", error=False):
+        MessagePopup(self.root, message, title, error)
+
     def create_menu(self):
         """Create the menu bar with file and edit options."""
         menu_bar = tk.Menu(self.root)
@@ -142,7 +145,7 @@ class TextEditorApp:
                 
         except tk.TclError:
             # No text selected
-            messagebox.showwarning("No Selection", "Please select some text first")
+            self.show_message("Please select some text first", title="Error", error=True)
 
     def ask_font(self):
         """Open a dialog to select font and size."""
