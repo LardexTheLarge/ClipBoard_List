@@ -9,15 +9,27 @@ class TextEditorApp:
         """Initialize the text editor application."""
         self.root = root
         self.root.title("Text Editor")
-        self.root.minsize(800, 600)
+        self.root.minsize(845, 600)
 
         # Initialize Theme Manager
         self.theme_manager = ThemeManager()
         bg_color, fg_color, button_bg, button_fg = self.theme_manager.get_theme_colors(self.theme_manager.current_theme)
 
-        # Text area with scrollbars
-        self.text_area = ScrolledText(root, wrap="word", undo=True, bg=bg_color, fg=fg_color)
-        self.text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Create a container frame for the text area with fixed size
+        self.text_frame = tk.Frame(root, bg=bg_color)
+        self.text_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Text area with scrollbars - fixed size (adjust width and height as needed)
+        self.text_area = ScrolledText(
+            self.text_frame, 
+            wrap="word", 
+            undo=True, 
+            bg=bg_color, 
+            fg=fg_color,
+            width=80,  # Characters wide
+            height=30  # Lines tall
+        )
+        self.text_area.pack(fill=tk.BOTH, expand=True)
 
         # Track the current font for new text
         self.current_font = ("Arial", 12)
@@ -48,6 +60,8 @@ class TextEditorApp:
         file_menu.add_command(label="Open", command=self.open_file)
         file_menu.add_command(label="Save", command=self.save_file)
         file_menu.add_command(label="Save As", command=self.save_file_as)
+        file_menu.add_separator()
+        file_menu.add_command(label="Print", command=self.print_text)  # Add this line
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
         menu_bar.add_cascade(label="File", menu=file_menu)
@@ -81,6 +95,33 @@ class TextEditorApp:
         menu_bar.add_cascade(label="Text", menu=text_menu)
 
         self.root.config(menu=menu_bar)
+
+    def print_text(self):
+        """Print the content of the text area."""
+        import tempfile
+        import os
+        import subprocess
+        
+        # Get the text content
+        text_content = self.text_area.get("1.0", tk.END)
+        
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp_file:
+            tmp_file.write(text_content)
+            tmp_file_path = tmp_file.name
+        
+        try:
+            # Platform-independent printing (works on Windows, macOS, and Linux)
+            if os.name == 'nt':  # Windows
+                os.startfile(tmp_file_path, 'print')
+            elif os.name == 'posix':
+                if os.uname().sysname == 'Darwin':  # macOS
+                    subprocess.run(['lp', tmp_file_path])
+                else:  # Linux
+                    subprocess.run(['lpr', tmp_file_path])
+        finally:
+            # Clean up - delete the temporary file after a short delay
+            self.root.after(10000, lambda: os.unlink(tmp_file_path))
 
     def new_file(self):
         """Clears the text area to start a new file."""
